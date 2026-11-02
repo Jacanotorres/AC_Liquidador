@@ -232,11 +232,25 @@ async function rpc(fn, args) {
     headers.apikey = CONFIG.supabaseKey;
     if (CONFIG.supabaseKey.startsWith("eyJ")) headers.Authorization = "Bearer " + CONFIG.supabaseKey;
   }
-  const res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${fn}`, {
-    method: "POST", headers, body: JSON.stringify(args),
-  });
+  const sinConfigurar = new Error(
+    "Falta configurar Supabase: completa supabaseUrl y supabaseKey en CONFIG, al inicio del script de index.html.");
+  if (!CONFIG.supabaseUrl && location.protocol === "file:") throw sinConfigurar;
+  let res;
+  try {
+    res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${fn}`, {
+      method: "POST", headers, body: JSON.stringify(args),
+    });
+  } catch (e) {
+    throw new Error("No hay conexión con el servicio. Revisa supabaseUrl en CONFIG y tu internet.");
+  }
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error((data && data.message) || "No se pudo consultar el servicio.");
+  if (!res.ok) {
+    if (!data && !CONFIG.supabaseUrl) throw sinConfigurar;
+    if (data && /could not find the function/i.test(data.message || "")) {
+      throw new Error("Las funciones no existen en Supabase: ejecuta supabase-base-gravable.sql en el SQL Editor.");
+    }
+    throw new Error((data && data.message) || "No se pudo consultar el servicio.");
+  }
   return data;
 }
 
