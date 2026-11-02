@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cotizador de impuesto vehicular</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --ink: #14181f;
+    --muted: #5c6573;
+    --line: #dde1e8;
+    --accent: #1f4fd8;
+    --accent-ink: #ffffff;
+    --accent-soft: #e8eefc;
+    --danger: #b3261e;
+    --danger-soft: #fdecea;
+    --ok-soft: #eaf6ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1218; --card: #181c24; --ink: #eceff4; --muted: #9aa3b2; --line: #2b313d;
+      --accent: #6d8cff; --accent-ink: #0f1218; --accent-soft: #1f2740;
+      --danger: #ff8a80; --danger-soft: #3a1f1d; --ok-soft: #1c2b22;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1218; --card: #181c24; --ink: #eceff4; --muted: #9aa3b2; --line: #2b313d;
+    --accent: #6d8cff; --accent-ink: #0f1218; --accent-soft: #1f2740;
+    --danger: #ff8a80; --danger-soft: #3a1f1d; --ok-soft: #1c2b22;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { margin-bottom: 20px; }
+  .dealer { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 4px 0 6px; font-size: clamp(24px, 5vw, 32px); line-height: 1.15; }
+  .lead { margin: 0; color: var(--muted); max-width: 60ch; }
+  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .grid { grid-template-columns: 1.1fr .9fr; align-items: start; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .card h2 { margin: 0 0 14px; font-size: 17px; }
+  .field { margin-bottom: 14px; }
+  label, .label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  select, input[type="text"] {
+    width: 100%; min-height: 44px; padding: 9px 12px; font: inherit; color: var(--ink);
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  }
+  select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
+  select:focus-visible, input:focus-visible, button:focus-visible, .seg label:has(input:focus-visible) {
+    outline: 3px solid var(--accent); outline-offset: 1px;
+  }
+  .row { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 520px) { .row.two { grid-template-columns: 1fr 1fr; } }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg label {
+    flex: 1; margin: 0; padding: 10px 12px; text-align: center; font-weight: 500; cursor: pointer;
+    min-height: 44px; display: flex; align-items: center; justify-content: center;
+  }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  button {
+    font: inherit; min-height: 46px; padding: 10px 18px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+  .empty { color: var(--muted); font-size: 15px; }
+  /* Cotización */
+  .quote-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .quote-head .no { font-size: 13px; color: var(--muted); }
+  dl { margin: 0; }
+  .line { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .line dt { color: var(--muted); }
+  .line dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .total { margin-top: 14px; background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; }
+  .total .t { font-size: 13px; color: var(--muted); }
+  .total .v { font-size: clamp(26px, 6vw, 34px); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .note { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+  .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .actions button { flex: 1; }
+  [hidden] { display: none !important; }
+  @media print {
+    :root { --bg:#fff; --card:#fff; --ink:#000; --muted:#444; --line:#ccc; --accent-soft:#f0f0f0; }
+    body { background: #fff; }
+    .no-print, header .lead { display: none !important; }
+    .grid { display: block; }
+    .card { border: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="dealer" id="dealer"></div>
+    <h1>Cotizador de impuesto vehicular</h1>
+    <p class="lead">Elige el vehículo y calcula el impuesto anual estimado con la base gravable oficial del Ministerio de Transporte.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card no-print" aria-labelledby="h-vehiculo">
+      <h2 id="h-vehiculo">Vehículo</h2>
+      <form id="form" novalidate>
+        <div class="field">
+          <label for="tabla">Tipo de vehículo</label>
+          <select id="tabla"></select>
+        </div>
+        <div class="row two">
+          <div class="field">
+            <label for="marca">Marca</label>
+            <select id="marca" disabled><option value="">Cargando…</option></select>
+          </div>
+          <div class="field">
+            <label for="filtro">Buscar línea</label>
+            <input id="filtro" type="text" placeholder="Ej. corolla, spark" autocomplete="off" disabled>
+          </div>
+        </div>
+        <div class="field">
+          <label for="linea">Línea y cilindraje</label>
+          <select id="linea" disabled><option value="">Primero elige la marca</option></select>
+          <div class="hint" id="lineas-hint"></div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="estado-l">Estado</span>
+          <div class="seg" role="radiogroup" aria-labelledby="estado-l">
+            <label><input type="radio" name="estado" value="usado" checked> Usado</label>
+            <label><input type="radio" name="estado" value="nuevo"> Nuevo</label>
+          </div>
+        </div>
+
+        <div class="field" id="f-anio">
+          <label for="anio">Año modelo</label>
+          <select id="anio" disabled><option value="">Primero elige la línea</option></select>
+        </div>
+        <div class="field" id="f-factura" hidden>
+          <label for="factura">Valor de la factura, sin IVA</label>
+          <input id="factura" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+          <div class="hint">En vehículos nuevos la base es el valor de la factura sin IVA, no la tabla.</div>
+        </div>
+
+        <div class="field">
+          <label for="regimen">Registro del vehículo</label>
+          <select id="regimen">
+            <option value="1">Normal</option>
+            <option value="0.45">San Andrés (45 % del avalúo)</option>
+            <option value="0.5">Internado temporalmente en zona de frontera (50 %)</option>
+          </select>
+        </div>
+
+        <div class="row two">
+          <div class="field">
+            <label for="cliente">Cliente (opcional)</label>
+            <input id="cliente" type="text" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="precio">Precio de venta (opcional)</label>
+            <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+          </div>
+        </div>
+
+        <button class="primary" id="calcular" type="submit" disabled>Calcular cotización</button>
+        <div class="error" id="error" role="alert" hidden></div>
+      </form>
+    </section>
+
+    <section class="card" aria-labelledby="h-cot" aria-live="polite">
+      <h2 id="h-cot" class="no-print">Cotización</h2>
+      <p class="empty no-print" id="vacio">Completa el vehículo y pulsa “Calcular cotización” para ver el resultado.</p>
+      <div id="cotizacion" hidden>
+        <div class="quote-head">
+          <div>
+            <strong id="q-vehiculo"></strong><br>
+            <span class="no" id="q-detalle"></span>
+          </div>
+          <div class="no" id="q-numero" style="text-align:right"></div>
+        </div>
+        <dl>
+          <div class="line" id="q-cliente-l" hidden><dt>Cliente</dt><dd id="q-cliente"></dd></div>
+          <div class="line" id="q-precio-l" hidden><dt>Precio de venta</dt><dd id="q-precio"></dd></div>
+          <div class="line"><dt id="q-base-t">Base gravable</dt><dd id="q-base"></dd></div>
+          <div class="line"><dt>Tarifa</dt><dd id="q-tarifa"></dd></div>
+        </dl>
+        <div class="total">
+          <div class="t">Impuesto vehicular anual estimado</div>
+          <div class="v" id="q-impuesto"></div>
+        </div>
+        <p class="note" id="q-nota"></p>
+        <div class="actions no-print">
+          <button type="button" id="imprimir">Imprimir o guardar PDF</button>
+          <button type="button" id="nueva">Nueva cotización</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* Configuración: pegar la URL del proyecto y la llave pública (anon o publishable) de Supabase.
+   La llave pública es segura aquí: las tablas son de solo lectura (ver supabase-base-gravable.sql). */
+const CONFIG = {
+  supabaseUrl: "",          // ej. https://xxxx.supabase.co  ("" = mismo origen, para pruebas locales)
+  supabaseKey: "",
+  vigencia: 2026,
+  concesionario: "Nombre del concesionario",
+  fuente: "Resolución 20253040048935 de 2025 del Ministerio de Transporte y Decreto 1457 de 2025 (tarifas)",
+};
+
+/* Tipos con tarifa cargada (particulares). Las demás tablas necesitan sus propias tarifas. */
+const TIPOS = [
+  { tabla: 1, nombre: "Automóviles" },
+  { tabla: 2, nombre: "Camionetas y camperos" },
+  { tabla: 3, nombre: "Camionetas doble cabina" },
+  { tabla: 4, nombre: "Eléctricos" },
+  { tabla: 9, nombre: "Híbridos" },
+];
+
+const $ = (id) => document.getElementById(id);
+const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+let lineas = [];          // líneas de la marca elegida
+let ultimo = null;        // último cálculo, para la cotización
+
+async function rpc(fn, args) {
+  const headers = { "Content-Type": "application/json" };
+  if (CONFIG.supabaseKey) {
+    headers.apikey = CONFIG.supabaseKey;
+    if (CONFIG.supabaseKey.startsWith("eyJ")) headers.Authorization = "Bearer " + CONFIG.supabaseKey;
+  }
+  const res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${fn}`, {
+    method: "POST", headers, body: JSON.stringify(args),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error((data && data.message) || "No se pudo consultar el servicio.");
+  return data;
+}
+
+function mostrarError(msg) { const e = $("error"); e.textContent = msg; e.hidden = !msg; }
+function soloDigitos(s) { return (s || "").replace(/\D/g, ""); }
+function formatearMonto(input) {
+  const d = soloDigitos(input.value);
+  input.value = d ? "$ " + Number(d).toLocaleString("es-CO") : "";
+}
+function actualizarBoton() {
+  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
+  const ok = $("linea").value && (nuevo ? soloDigitos($("factura").value) : $("anio").value);
+  $("calcular").disabled = !ok;
+}
+
+function llenar(select, opciones, placeholder) {
+  select.innerHTML = "";
+  const ph = new Option(placeholder, ""); select.add(ph);
+  for (const [valor, texto] of opciones) select.add(new Option(texto, valor));
+  select.disabled = opciones.length === 0;
+}
+
+async function cargarMarcas() {
+  mostrarError("");
+  llenar($("marca"), [], "Cargando…");
+  llenar($("linea"), [], "Primero elige la marca");
+  llenar($("anio"), [], "Primero elige la línea");
+  $("filtro").disabled = true; $("filtro").value = ""; $("lineas-hint").textContent = "";
+  actualizarBoton();
+  try {
+    const marcas = await rpc("avaluo_marcas", { p_vigencia: CONFIG.vigencia, p_tabla: Number($("tabla").value) });
+    llenar($("marca"), marcas.map((m) => [m, m]), "Elige la marca");
+  } catch (e) { mostrarError(e.message); llenar($("marca"), [], "No disponible"); }
+}
+
+async function cargarLineas() {
+  llenar($("linea"), [], "Cargando…");
+  llenar($("anio"), [], "Primero elige la línea");
+  $("filtro").value = ""; $("lineas-hint").textContent = "";
+  actualizarBoton();
+  if (!$("marca").value) { llenar($("linea"), [], "Primero elige la marca"); $("filtro").disabled = true; return; }
+  try {
+    lineas = await rpc("avaluo_lineas", {
+      p_vigencia: CONFIG.vigencia, p_tabla: Number($("tabla").value), p_marca: $("marca").value,
+    });
+    $("filtro").disabled = false;
+    pintarLineas();
+  } catch (e) { mostrarError(e.message); }
+}
+
+function etiquetaLinea(l) {
+  return l.cilindraje ? `${l.linea} · ${l.cilindraje}` : l.linea;
+}
+function pintarLineas() {
+  const q = $("filtro").value.trim().toLowerCase();
+  const previa = $("linea").value;
+  const visibles = lineas.filter((l) => !q || etiquetaLinea(l).toLowerCase().includes(q));
+  llenar($("linea"), visibles.map((l) => [l.id, etiquetaLinea(l)]),
+    visibles.length ? "Elige la línea" : "Sin resultados");
+  if (previa && visibles.some((l) => String(l.id) === previa)) $("linea").value = previa;
+  $("lineas-hint").textContent = q ? `${visibles.length} de ${lineas.length} líneas` : `${lineas.length} líneas`;
+  cargarAnios();
+}
+
+function cargarAnios() {
+  const l = lineas.find((x) => String(x.id) === $("linea").value);
+  if (!l) { llenar($("anio"), [], "Primero elige la línea"); actualizarBoton(); return; }
+  const anios = [...l.anios].sort((a, b) => b - a);
+  llenar($("anio"), anios.map((a) => [a, a === 2001 ? "2001 o anterior" : String(a)]), "Elige el año modelo");
+  actualizarBoton();
+}
+
+function alternarEstado() {
+  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
+  $("f-anio").hidden = nuevo; $("f-factura").hidden = !nuevo;
+  actualizarBoton();
+}
+
+async function calcular(ev) {
+  ev.preventDefault();
+  mostrarError("");
+  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
+  const l = lineas.find((x) => String(x.id) === $("linea").value);
+  if (!l) return;
+  const anioMax = Math.max(...l.anios);
+  const factura = nuevo ? Number(soloDigitos($("factura").value)) : null;
+  const anio = nuevo ? anioMax : Number($("anio").value);
+  const factor = Number($("regimen").value);
+
+  $("calcular").disabled = true; $("calcular").textContent = "Calculando…";
+  try {
+    const filas = await rpc("calcular_impuesto_vehicular", {
+      p_vehiculo_id: Number(l.id), p_anio_modelo: anio, p_valor_factura: factura, p_factor: factor,
+    });
+    const r = filas[0];
+    ultimo = { r, l, nuevo, anio, factor, factura };
+    pintarCotizacion();
+  } catch (e) { mostrarError(e.message); }
+  finally { $("calcular").textContent = "Calcular cotización"; actualizarBoton(); }
+}
+
+function pintarCotizacion() {
+  const { r, l, nuevo, anio, factor } = ultimo;
+  const ahora = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  $("q-vehiculo").textContent = `${$("marca").value} ${l.linea}`;
+  $("q-detalle").textContent = [
+    l.cilindraje ? "Cilindraje " + l.cilindraje : null,
+    nuevo ? "Nuevo" : (anio === 2001 ? "Modelo 2001 o anterior" : "Modelo " + anio),
+  ].filter(Boolean).join(" · ");
+  $("q-numero").textContent =
+    `COT-${ahora.getFullYear()}${pad(ahora.getMonth() + 1)}${pad(ahora.getDate())}-${pad(ahora.getHours())}${pad(ahora.getMinutes())}\n` +
+    ahora.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+  $("q-numero").style.whiteSpace = "pre-line";
+
+  const cliente = $("cliente").value.trim();
+  $("q-cliente-l").hidden = !cliente; $("q-cliente").textContent = cliente;
+  const precio = Number(soloDigitos($("precio").value));
+  $("q-precio-l").hidden = !precio; $("q-precio").textContent = precio ? COP.format(precio) : "";
+
+  $("q-base-t").textContent = nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)";
+  $("q-base").textContent = COP.format(r.base_gravable);
+  $("q-tarifa").textContent = (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %";
+  $("q-impuesto").textContent = COP.format(r.impuesto);
+
+  const nota = [`Valor estimado para la vigencia ${CONFIG.vigencia}, a título informativo.`];
+  if (factor !== 1) nota.push(`Se aplicó ${factor * 100} % sobre el avalúo por el tipo de registro.`);
+  nota.push("La liquidación oficial la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta cotización no considera.");
+  nota.push("Fuente: " + CONFIG.fuente + ".");
+  $("q-nota").textContent = nota.join(" ");
+
+  $("vacio").hidden = true; $("cotizacion").hidden = false;
+  if (window.matchMedia("(max-width: 819px)").matches) $("cotizacion").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function nueva() {
+  ultimo = null;
+  $("cotizacion").hidden = true; $("vacio").hidden = false;
+  $("form").reset(); alternarEstado();
+  cargarMarcas();
+  $("tabla").focus();
+}
+
+$("dealer").textContent = CONFIG.concesionario;
+llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
+$("tabla").remove(0); $("tabla").disabled = false;
+$("tabla").addEventListener("change", cargarMarcas);
+$("marca").addEventListener("change", cargarLineas);
+$("filtro").addEventListener("input", pintarLineas);
+$("linea").addEventListener("change", cargarAnios);
+$("anio").addEventListener("change", actualizarBoton);
+document.querySelectorAll('input[name="estado"]').forEach((r) => r.addEventListener("change", alternarEstado));
+for (const id of ["factura", "precio"]) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
+$("form").addEventListener("submit", calcular);
+$("imprimir").addEventListener("click", () => window.print());
+$("nueva").addEventListener("click", nueva);
+cargarMarcas();
+</script>
+</body>
+</html>
