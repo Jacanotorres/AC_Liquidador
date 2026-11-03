@@ -101,7 +101,96 @@
     return d ? Number(d) : null;
   }
 
-  const api = { norm, decidirTabla, elegirMarca, rankearLineas, anioParaTabla, cilindrajeANumero };
+  /* ---------- Interpretación del texto que devuelve el OCR ---------- */
+
+  // Texto de una línea del OCR: mayúsculas, sin tildes y sin símbolos raros (deja . , / para el cilindraje).
+  const limpiar = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toUpperCase().replace(/[^A-Z0-9.,/ ]+/g, " ").replace(/\s+/g, " ").trim();
+
+  const A_LETRA = { 0: "O", 1: "I", 5: "S", 8: "B", 2: "Z", 6: "G" };
+  const A_DIGITO = { O: "0", I: "1", S: "5", B: "8", Z: "2", G: "6", T: "7", A: "4", L: "1", Q: "0", D: "0" };
+
+  /* Las placas de carro son 3 letras + 3 números (motos: 3 letras + 2 números + letra). El OCR confunde
+     I/1, S/5, O/0, B/8: se corrige según la posición. Devuelve {placa, seguro}. */
+  function normalizarPlaca(token) {
+    const t = String(token ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (t.length !== 6) return { placa: t || null, seguro: false };
+    const letras = [...t.slice(0, 3)].map((c) => (/\d/.test(c) ? A_LETRA[c] || c : c)).join("");
+    const medio = [...t.slice(3, 5)].map((c) => (/[A-Z]/.test(c) ? A_DIGITO[c] || c : c)).join("");
+    const ultimo = t[5];
+    const esMoto = /[A-Z]/.test(ultimo) && !A_DIGITO[ultimo];   // última letra "de verdad": placa de moto
+    const fin = esMoto ? ultimo : (/[A-Z]/.test(ultimo) ? A_DIGITO[ultimo] || ultimo : ultimo);
+    const placa = letras + medio + fin;
+    return { placa, seguro: /^[A-Z]{3}\d{2}[\dA-Z]$/.test(placa) };
+  }
+
+  const CLASES = ["AUTOMOVIL", "CAMIONETA", "CAMPERO", "MOTOCICLETA", "MOTOCARRO", "CUATRIMOTO", "MICROBUS",
+    "BUSETA", "BUS", "CAMION", "VOLQUETA", "TRACTOCAMION", "MAQUINARIA"];
+  const CARROCERIAS = [/DOBLE ?CABINA/, /HATCH ?BACK/, /WAGON/, /SEDAN/, /PICK ?UP/, /COUPE/, /CONVERTIBLE/, /FURGON/, /CAMPERO/, /MINIVAN/];
+
+  /* texto (string del OCR) + marcas conocidas (las de las tablas del Ministerio)
+     -> el mismo objeto de datos que usa la página. Nunca inventa: lo que no se lee queda en null. */
+  function interpretarOCR(texto, marcas) {
+    const lineas = String(texto ?? "").split(/\r?\n/).map(limpiar).filter(Boolean);
+    const conocidas = marcas.map((m) => [m, norm(m).split(" ")]);
+    const ANIO = /^(19[5-9]\d|20[0-3]\d)$/;
+    const dudas = [];
+
+    // 1) La línea de datos: [placa] MARCA LÍNEA... AÑO. Se ubica por una marca conocida seguida de un año.
+    let datos = null;
+    for (let i = 0; i < lineas.length && !datos; i++) {
+      const tk = lineas[i].split(" ");
+      for (let j = 0; j < tk.length && !datos; j++) {
+        for (let k = 3; k >= 1; k--) {
+          const trozo = tk.slice(j, j + k);
+          if (trozo.length < k) continue;
+          const unido = trozo.join(" ");
+          const hit = conocidas.find(([, t]) => t.join(" ") === unido) ||
+            (k === 1 && unido.length >= 5 ? conocidas.find(([, t]) => t.length === 1 && similitud(t[0], unido) > 0) : null);
+          if (!hit) continue;
+          const iAnio = tk.findIndex((t, x) => x >= j + k && ANIO.test(t));
+          if (iAnio < 0) continue;
+          datos = { i, marca: hit[0], linea: tk.slice(j + k, iAnio).join(" "), modelo: Number(tk[iAnio]),
+            placaToken: j > 0 ? tk[j - 1] : null };
+          break;
+        }
+      }
+    }
+    if (!datos) {
+      const hayPistas = lineas.some((l) => /LICENCIA|TRANSITO|PLACA|MARCA/.test(l));
+      return { es_tarjeta: hayPistas, placa: null, marca: null, linea: null, modelo: null, cilindraje_cc: null,
+        clase: null, carroceria: null, combustible: null, servicio: null, pasajeros: null, color: null,
+        organismo_transito: null, dudas: ["No se pudo leer la marca, la línea y el modelo"] };
+    }
+
+    // 2) Resto de campos: en las líneas siguientes (cilindraje/color/servicio, clase/carrocería/combustible).
+    const abajo = lineas.slice(datos.i + 1, datos.i + 6);
+    const todo = abajo.join(" | ");
+    const tokensAbajo = abajo.flatMap((l) => l.split(" "));
+
+    const ccTok = tokensAbajo.find((t) => /^(\d{1,2}[.,]\d{3}|\d{3,4})$/.test(t));
+    const servicio = (todo.match(/PARTICULAR|PUBLICO|OFICIAL|DIPLOMATICO|ESPECIAL/) || [null])[0];
+    const clase = CLASES.find((c) => tokensAbajo.some((t) => t === c || (c.length >= 9 && similitud(t, c) > 0)))
+      || (todo.match(/MOTO/) ? "MOTOCICLETA" : null);
+    const carroceria = (CARROCERIAS.map((r) => todo.match(r)).find(Boolean) || [null])[0];
+    const comb = [...todo.matchAll(/GASOLINA|DIESEL|ACPM|ELECTRICO|HIBRIDO|GAS NATURAL|GNV/g)].map((m) => m[0]);
+    const placa = normalizarPlaca(datos.placaToken);
+
+    if (!placa.placa || !placa.seguro) dudas.push("la placa no se leyó bien: revísala");
+    if (!ccTok) dudas.push("no se leyó el cilindraje");
+    if (!servicio) dudas.push("no se leyó el servicio: confirma que sea particular");
+    if (!clase) dudas.push("no se leyó la clase del vehículo");
+
+    return {
+      es_tarjeta: true, placa: placa.placa, marca: datos.marca, linea: datos.linea || null, modelo: datos.modelo,
+      cilindraje_cc: ccTok ? cilindrajeANumero(ccTok) : null, clase, carroceria,
+      combustible: comb.length ? [...new Set(comb)].join(" ") : null, servicio,
+      pasajeros: null, color: null, organismo_transito: null, dudas,
+    };
+  }
+
+  const api = { norm, decidirTabla, elegirMarca, rankearLineas, anioParaTabla, cilindrajeANumero,
+    interpretarOCR, normalizarPlaca };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.Tarjeta = api;
 })(typeof window !== "undefined" ? window : globalThis);

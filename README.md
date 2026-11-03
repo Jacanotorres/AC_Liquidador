@@ -24,29 +24,21 @@ tablas del Ministerio guardadas en Supabase y las tarifas del decreto de Haciend
 
 ## Cotización desde la foto de la tarjeta de propiedad
 
-La página lee la tarjeta con una foto (Claude con visión, a través de una Edge Function), busca el
-vehículo en las tablas del Ministerio y arma la cotización: valor, descuento, impuesto, SOAT,
-traspaso, tramitador y prenda. Siempre muestra los datos leídos y varias opciones de línea con su
-avalúo para que la persona confirme; las fotos pueden salir con reflejos y las líneas del Ministerio
-no siempre se escriben igual que en la tarjeta.
+La página lee la tarjeta con una foto y arma la cotización: valor, descuento, impuesto, SOAT,
+traspaso, tramitador y prenda. **Es gratis y no necesita llaves ni servidores:** el OCR
+([Tesseract.js](https://github.com/naptha/tesseract.js)) corre en el navegador de quien cotiza, la foto no
+sale del dispositivo y no se guarda. La primera vez descarga el lector (unos 15 MB, desde jsDelivr) y luego
+queda en caché.
 
-Publicar la función (una vez, con la CLI de Supabase):
-
-```bash
-supabase login
-supabase link --project-ref sqncxdtjmpqvfyzsvild
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-... ACCESO_COTIZADOR=elige-un-codigo
-supabase functions deploy leer-tarjeta
-```
-
-- `ACCESO_COTIZADOR` es el código que se escribe en la página. Sin él, cualquiera que vea la URL de la
-  función podría gastar tu saldo de Anthropic. Define también un límite de gasto en la consola de Anthropic.
-- Opcionales: `MODELO_TARJETA` (por defecto `claude-sonnet-5-5`) y `ORIGEN_PERMITIDO` (el dominio de la
-  página, para CORS).
-- La función solo devuelve datos del vehículo. No transcribe el nombre ni el documento del propietario,
-  y no guarda la imagen ni los datos. La foto sí viaja a Anthropic: pide autorización al cliente.
-- `tarjeta.js` tiene la lógica de coincidencia; `node herramientas/probar_coincidencia.js` la prueba
-  contra tu Supabase con varios vehículos de ejemplo.
+- `tarjeta.js` interpreta el texto leído: ubica la marca con las de las tablas del Ministerio, toma la
+  línea, el modelo, el cilindraje, la clase, el combustible y el servicio, y corrige la placa según su
+  formato (3 letras + 3 números). No inventa: lo que no se lee queda vacío y se avisa.
+- Siempre se muestran los datos leídos y varias opciones de línea con su avalúo para que la persona
+  confirme. La **placa** es el dato menos fiable del OCR: se puede editar y no entra en el cálculo.
+- Con buena luz, sin reflejos y la tarjeta ocupando buena parte de la foto, la lectura mejora mucho.
+- Si el OCR no sirve para una foto, el vehículo se elige a mano (marca, línea, año).
+- Pruebas: `node herramientas/probar_ocr.js` (intérprete de texto) y
+  `node herramientas/probar_coincidencia.js` (coincidencia con tu Supabase).
 - Traspaso, tramitador y prenda vienen precargados con valores de ejemplo (`CONFIG.tramites`); en
   pantalla se pueden cambiar y el navegador los recuerda. El SOAT se digita por cotización.
 

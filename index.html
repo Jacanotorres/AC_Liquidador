@@ -131,19 +131,12 @@
 
   <section class="card no-print" aria-labelledby="h-foto">
     <h2 id="h-foto">Leer la tarjeta de propiedad</h2>
-    <div class="row two">
-      <div class="field">
-        <label for="acceso">Código de acceso</label>
-        <input id="acceso" type="password" autocomplete="off" placeholder="El que te dio el administrador">
-      </div>
-      <div class="field">
-        <span class="label">Foto de la tarjeta</span>
-        <label class="filebtn" for="foto">Tomar o subir foto<input id="foto" type="file" accept="image/*"></label>
-      </div>
+    <div class="field">
+      <label class="filebtn" for="foto">Tomar o subir foto de la tarjeta<input id="foto" type="file" accept="image/*"></label>
     </div>
     <div class="msg ok" id="foto-estado" role="status" hidden></div>
     <div class="msg aviso" id="foto-aviso" hidden></div>
-    <p class="hint">Fotografía el lado con los datos del vehículo (placa, marca, línea, modelo, cilindraje). La foto se envía a un servicio de inteligencia artificial solo para leer esos datos: no se guarda y no se lee el nombre ni el documento del propietario. Pide autorización al cliente antes de fotografiar su tarjeta.</p>
+    <p class="hint">Fotografía el lado con los datos del vehículo (placa, marca, línea, modelo, cilindraje), con buena luz y sin reflejos. La lectura se hace en tu propio dispositivo: la foto no se envía a ningún servidor y no se guarda. La primera vez descarga el lector de texto (unos 15 MB) y luego queda guardado. Revisa siempre los datos leídos, sobre todo la placa.</p>
   </section>
 
   <div class="grid">
@@ -425,45 +418,68 @@ function alternarEstado() {
 
 /* ---------- Lectura de la tarjeta ---------- */
 
+const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let lector = null;        // worker de Tesseract, se reutiliza entre fotos
+let marcasConocidas = null;
+
+function cargarTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  return new Promise((ok, fallo) => {
+    const s = document.createElement("script");
+    s.src = TESSERACT_URL;
+    s.onload = () => ok(window.Tesseract);
+    s.onerror = () => fallo(new Error("No se pudo descargar el lector de texto. Revisa tu internet e intenta de nuevo."));
+    document.head.append(s);
+  });
+}
+
+async function obtenerLector(avance) {
+  if (lector) return lector;
+  const T = await cargarTesseract();
+  lector = await T.createWorker("spa", 1, {
+    logger: (m) => { if (m.status === "recognizing text") avance(Math.round(m.progress * 100)); },
+  });
+  return lector;
+}
+
+/* La foto se amplía a ~2800 px de lado largo: el texto de la tarjeta es pequeño y así se lee mejor. */
 async function prepararImagen(archivo) {
   let bmp;
   try { bmp = await createImageBitmap(archivo); } // respeta la orientación EXIF
   catch (e) { throw new Error("No se pudo abrir la imagen. Usa una foto JPG o PNG."); }
-  const esc = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+  const esc = Math.min(4, 2800 / Math.max(bmp.width, bmp.height));
   const c = document.createElement("canvas");
   c.width = Math.round(bmp.width * esc); c.height = Math.round(bmp.height * esc);
   c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
-  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
-  const dataUrl = await new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
-  return dataUrl.split(",")[1];
+  return c;
 }
 
-async function leerTarjeta(base64) {
-  const h = cabeceras();
-  h["x-acceso"] = $("acceso").value.trim();
-  let res;
-  try {
-    res = await fetch(`${CONFIG.supabaseUrl}/functions/v1/leer-tarjeta`, {
-      method: "POST", headers: h, body: JSON.stringify({ imagen: base64, tipo: "image/jpeg" }),
-    });
-  } catch (e) { throw new Error("No hay conexión con el servicio de lectura. Revisa tu internet."); }
-  const data = await res.json().catch(() => null);
-  if (res.status === 404) throw new Error("La función leer-tarjeta no está publicada en Supabase (ver el README).");
-  if (!res.ok) throw new Error((data && data.error) || "No se pudo leer la tarjeta.");
-  return data.datos;
+/* Marcas de todas las tablas con tarifa: sirven para ubicar la marca dentro del texto leído. */
+async function cargarMarcasConocidas() {
+  if (marcasConocidas) return marcasConocidas;
+  const listas = await Promise.all(TIPOS.map((t) => rpc("avaluo_marcas", { p_vigencia: CONFIG.vigencia, p_tabla: t.tabla })));
+  marcasConocidas = [...new Set(listas.flat())];
+  return marcasConocidas;
+}
+
+async function leerTarjeta(archivo) {
+  const estado = $("foto-estado");
+  estado.textContent = "Preparando la foto…";
+  const imagen = await prepararImagen(archivo);
+  estado.textContent = "Cargando el lector de texto (solo la primera vez)…";
+  const w = await obtenerLector((p) => { estado.textContent = `Leyendo la tarjeta… ${p} %`; });
+  const { data } = await w.recognize(imagen);
+  return Tarjeta.interpretarOCR(data.text, await cargarMarcasConocidas());
 }
 
 async function alElegirFoto(ev) {
   const archivo = ev.target.files[0];
   if (!archivo) return;
-  mostrarError(""); $("foto-aviso").hidden = true; $("foto-estado").hidden = true;
-  if (!$("acceso").value.trim()) { mostrarError("Escribe el código de acceso antes de subir la foto."); ev.target.value = ""; return; }
-  guardar("ac.acceso", $("acceso").value.trim());
+  mostrarError(""); $("foto-aviso").hidden = true;
   const estado = $("foto-estado");
-  estado.hidden = false; estado.textContent = "Leyendo la tarjeta…";
+  estado.hidden = false; estado.textContent = "Preparando la foto…";
   try {
-    const datos = await leerTarjeta(await prepararImagen(archivo));
-    await aplicarTarjeta(datos);
+    await aplicarTarjeta(await leerTarjeta(archivo));
   } catch (e) { estado.hidden = true; mostrarError(e.message); }
   finally { ev.target.value = ""; }
 }
@@ -714,7 +730,6 @@ function nueva() {
 }
 
 $("dealer").textContent = CONFIG.concesionario;
-$("acceso").value = leer("ac.acceso") || "";
 llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
 $("tabla").remove(0); $("tabla").disabled = false;
 // Si cambian el tipo o la marca a mano, ya no es el vehículo de la tarjeta.
