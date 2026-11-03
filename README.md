@@ -42,6 +42,31 @@ queda en caché.
 - Traspaso, tramitador y prenda vienen precargados con valores de ejemplo (`CONFIG.tramites`); en
   pantalla se pueden cambiar y el navegador los recuerda. El SOAT se digita por cotización.
 
+## Formatos de compra en Excel (traspaso, compraventa, mandatos y consignaciones)
+
+La plantilla `Documentos Compra De Vehiculos.xlsx` ya está armada para esto: todas sus hojas de
+formatos toman los datos de la hoja **Datos Basicos** con fórmulas. La página llena esa hoja y los
+formatos se actualizan solos.
+
+1. Sube la foto del frente de la tarjeta (y, si quieres, la del reverso, para la ciudad de matrícula).
+   Se llenan marca, línea, modelo, clase, carrocería, cilindraje, motor, VIN, chasis, color, placa,
+   capacidad y los datos del propietario (apellidos, nombres y cédula).
+2. Completa lo que no está en la tarjeta: dirección, teléfono y ciudad del propietario, y los datos
+   del comprador. Los campos con borde ámbar (placa, motor, VIN, chasis, cédula) vienen del OCR y se
+   deben verificar con la tarjeta: el OCR los confunde, sobre todo con fotos pequeñas.
+3. Elige tu plantilla una vez (el navegador la recuerda en IndexedDB; no se sube a ningún servidor ni
+   está en este repositorio, porque trae los textos de tu negocio) y pulsa **Descargar Excel lleno**.
+
+Detalles técnicos (`formatos.js`):
+
+- Solo se modifica el XML de la hoja "Datos Basicos" y los valores guardados de las fórmulas que
+  dependen de ella; el resto del archivo (logos, imágenes, estilos, celdas combinadas) queda idéntico.
+  No se usa una librería de Excel precisamente para no perder esas imágenes.
+- Todo se escribe en mayúsculas ("TODO DILIGENCIADO EN MAYUSCULA"). Un campo vacío limpia la celda, así
+  no quedan datos de la operación anterior. Las celdas de la empresa (C42:C44) no se tocan.
+- El archivo pide recálculo al abrirse. Hay que abrirlo en Excel y revisar los formatos antes de imprimir.
+- Pruebas: `node herramientas/probar_ocr.js`, y `npm install jszip` + `node herramientas/probar_formatos.js`.
+
 ## Probar en local
 
 ```bash

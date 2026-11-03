@@ -78,6 +78,13 @@
     display: flex; align-items: center; justify-content: center; margin: 0; font-weight: 600;
     background: var(--accent); color: var(--accent-ink); border-color: var(--accent); position: relative;
   }
+  .filebtn.alt { background: var(--card); color: var(--ink); border-color: var(--line); }
+  details.grupo { border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px 2px; margin-bottom: 12px; }
+  details.grupo > summary { cursor: pointer; font-weight: 600; font-size: 14px; padding: 10px 0; }
+  .campos { display: grid; gap: 0 12px; grid-template-columns: 1fr; padding-top: 4px; }
+  @media (min-width: 560px) { .campos { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 860px) { .campos { grid-template-columns: 1fr 1fr 1fr; } }
+  input.dudoso { border-color: #d99a00; box-shadow: inset 0 0 0 1px #d99a00; }
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; }
   button:disabled { opacity: .55; cursor: not-allowed; }
   .msg { border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
@@ -132,11 +139,12 @@
   <section class="card no-print" aria-labelledby="h-foto">
     <h2 id="h-foto">Leer la tarjeta de propiedad</h2>
     <div class="field">
-      <label class="filebtn" for="foto">Tomar o subir foto de la tarjeta<input id="foto" type="file" accept="image/*"></label>
+      <label class="filebtn" for="foto">Tomar o subir foto(s) de la tarjeta<input id="foto" type="file" accept="image/*" multiple></label>
+      <div class="hint">Puedes elegir el frente y el reverso a la vez. El frente trae el vehículo y el propietario; el reverso, la ciudad de matrícula.</div>
     </div>
     <div class="msg ok" id="foto-estado" role="status" hidden></div>
     <div class="msg aviso" id="foto-aviso" hidden></div>
-    <p class="hint">Fotografía el lado con los datos del vehículo (placa, marca, línea, modelo, cilindraje), con buena luz y sin reflejos. La lectura se hace en tu propio dispositivo: la foto no se envía a ningún servidor y no se guarda. La primera vez descarga el lector de texto (unos 15 MB) y luego queda guardado. Revisa siempre los datos leídos, sobre todo la placa.</p>
+    <p class="hint">Fotografía la tarjeta con buena luz y sin reflejos. La lectura se hace en tu propio dispositivo: la foto no se envía a ningún servidor y no se guarda. También se lee el nombre y la cédula del propietario para llenar los formatos; esos datos tampoco salen de tu dispositivo. La primera vez descarga el lector de texto (unos 15 MB). Revisa siempre lo leído.</p>
   </section>
 
   <div class="grid">
@@ -277,9 +285,28 @@
       </div>
     </section>
   </div>
+  <section class="card no-print" id="c-formatos" aria-labelledby="h-formatos" style="margin-top:20px">
+    <h2 id="h-formatos">Formatos de compra (Excel)</h2>
+    <p class="hint" style="margin-top:-6px">Llena la hoja “Datos Basicos” de tu plantilla y todos los formatos (traspaso, compraventa, mandatos y consignaciones) se actualizan solos. Lo leído de la tarjeta aparece ya escrito; completa el resto. Los campos con borde ámbar vienen del OCR y conviene verificarlos con la tarjeta antes de imprimir.</p>
+    <div class="row two" style="margin-top:12px">
+      <div class="field">
+        <span class="label">Plantilla de Excel</span>
+        <label class="filebtn alt" for="plantilla">Elegir “Documentos Compra De Vehiculos.xlsx”<input id="plantilla" type="file" accept=".xlsx"></label>
+        <div class="hint" id="plantilla-estado"></div>
+      </div>
+      <div class="field">
+        <span class="label">Archivo</span>
+        <button class="primary" type="button" id="descargar">Descargar Excel lleno</button>
+      </div>
+    </div>
+    <div class="msg aviso" id="formato-aviso" hidden></div>
+    <div class="msg ok" id="formato-ok" hidden></div>
+    <div id="campos-formato" style="margin-top:14px"></div>
+  </section>
 </div>
 
 <script src="tarjeta.js"></script>
+<script src="formatos.js"></script>
 <script>
 /* Configuración: pegar la URL del proyecto y la llave pública (anon o publishable) de Supabase.
    La llave pública es segura aquí: las tablas son de solo lectura (ver supabase-base-gravable.sql). */
@@ -454,32 +481,56 @@ async function prepararImagen(archivo) {
   return c;
 }
 
-/* Marcas de todas las tablas con tarifa: sirven para ubicar la marca dentro del texto leído. */
+/* Marcas de todas las tablas del Ministerio: sirven para ubicar la marca dentro del texto leído. */
 async function cargarMarcasConocidas() {
   if (marcasConocidas) return marcasConocidas;
-  const listas = await Promise.all(TIPOS.map((t) => rpc("avaluo_marcas", { p_vigencia: CONFIG.vigencia, p_tabla: t.tabla })));
+  const listas = await Promise.all([1, 2, 3, 4, 5, 6, 7, 8, 9].map((t) => rpc("avaluo_marcas", { p_vigencia: CONFIG.vigencia, p_tabla: t })));
   marcasConocidas = [...new Set(listas.flat())];
   return marcasConocidas;
 }
 
-async function leerTarjeta(archivo) {
+async function textoDeFoto(archivo, etiqueta) {
   const estado = $("foto-estado");
-  estado.textContent = "Preparando la foto…";
+  estado.textContent = `${etiqueta}Preparando la foto…`;
   const imagen = await prepararImagen(archivo);
-  estado.textContent = "Cargando el lector de texto (solo la primera vez)…";
-  const w = await obtenerLector((p) => { estado.textContent = `Leyendo la tarjeta… ${p} %`; });
+  estado.textContent = `${etiqueta}Cargando el lector de texto (solo la primera vez)…`;
+  const w = await obtenerLector((p) => { estado.textContent = `${etiqueta}Leyendo la tarjeta… ${p} %`; });
   const { data } = await w.recognize(imagen);
-  return Tarjeta.interpretarOCR(data.text, await cargarMarcasConocidas());
+  return data.text;
+}
+
+/* Una o varias fotos (frente y reverso, en cualquier orden) -> los datos de la tarjeta unidos. */
+async function leerFotos(archivos) {
+  const marcas = await cargarMarcasConocidas();
+  let frente = null, reverso = null;
+  for (let i = 0; i < archivos.length; i++) {
+    const texto = await textoDeFoto(archivos[i], archivos.length > 1 ? `Foto ${i + 1} de ${archivos.length}: ` : "");
+    const d = Tarjeta.interpretarOCR(texto, marcas);
+    const r = Tarjeta.interpretarReverso(texto);
+    if (d.marca && !frente) frente = d;
+    else if (r.es_reverso && !reverso) reverso = r;
+  }
+  if (!frente) {
+    if (reverso && reverso.ciudad) $("f-ciudad_matricula").value = reverso.ciudad;
+    throw new Error(reverso
+      ? "Esa foto es el reverso. Sube también el frente de la tarjeta (el lado con la placa y la marca)."
+      : "No pude leer la tarjeta. Toma otra foto con más luz y sin reflejos, o llena los datos a mano.");
+  }
+  if (reverso && reverso.ciudad) frente.ciudad_matricula = reverso.ciudad;
+  return frente;
 }
 
 async function alElegirFoto(ev) {
-  const archivo = ev.target.files[0];
-  if (!archivo) return;
+  const archivos = [...ev.target.files];
+  if (!archivos.length) return;
   mostrarError(""); $("foto-aviso").hidden = true;
   const estado = $("foto-estado");
   estado.hidden = false; estado.textContent = "Preparando la foto…";
   try {
-    await aplicarTarjeta(await leerTarjeta(archivo));
+    const d = await leerFotos(archivos);
+    llenarCamposFormato(d);
+    try { await aplicarTarjeta(d); }
+    catch (e) { mostrarError(e.message + " Los formatos de Excel sí se pueden llenar con lo leído."); }
   } catch (e) { estado.hidden = true; mostrarError(e.message); }
   finally { ev.target.value = ""; }
 }
@@ -582,6 +633,128 @@ function elegirCandidata(id) {
 }
 
 function ocultarCandidatas() { $("candidatas").hidden = true; $("cand-lista").innerHTML = ""; opcionesVistas = []; }
+
+/* ---------- Formatos de compra (Excel) ---------- */
+
+const GRUPOS = [
+  { id: "vehiculo", titulo: "Datos del vehículo", abierto: true },
+  { id: "propietario", titulo: "Datos del propietario (vendedor)", abierto: true },
+  { id: "comprador", titulo: "Datos del comprador", abierto: true },
+];
+const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
+
+function construirCamposFormato() {
+  const cont = $("campos-formato"); cont.innerHTML = "";
+  for (const g of GRUPOS) {
+    const det = document.createElement("details"); det.className = "grupo"; det.open = g.abierto;
+    const sum = document.createElement("summary"); sum.textContent = g.titulo;
+    const rejilla = document.createElement("div"); rejilla.className = "campos";
+    for (const c of Formatos.CAMPOS.filter((x) => x.grupo === g.id)) {
+      const f = document.createElement("div"); f.className = "field";
+      const l = document.createElement("label"); l.htmlFor = "f-" + c.id; l.textContent = c.etiqueta;
+      const i = document.createElement("input");
+      Object.assign(i, { id: "f-" + c.id, type: "text", autocomplete: "off" });
+      i.dataset.campo = c.id; i.dataset.revisar = c.revisar ? "1" : "";
+      i.style.textTransform = "uppercase";
+      if (c.tipo === "digitos") i.inputMode = "numeric";
+      i.addEventListener("input", () => i.classList.remove("dudoso"));
+      f.append(l, i); rejilla.append(f);
+    }
+    det.append(sum, rejilla); cont.append(det);
+  }
+}
+
+function limpiarCamposFormato() {
+  document.querySelectorAll("[data-campo]").forEach((i) => { i.value = ""; i.classList.remove("dudoso"); });
+  $("formato-aviso").hidden = true; $("formato-ok").hidden = true;
+}
+
+/* Lo leído de la tarjeta se escribe en los campos; los que el OCR confunde con facilidad quedan marcados. */
+function llenarCamposFormato(d) {
+  const v = Formatos.valoresDesdeTarjeta(d);
+  for (const [id, valor] of Object.entries(v)) {
+    const i = $("f-" + id);
+    if (!i || valor === undefined || valor === null || valor === "") continue;
+    i.value = String(valor).toUpperCase();
+    if (i.dataset.revisar) i.classList.add("dudoso");
+  }
+  const sinLeer = ["ciudad_matricula"].filter((id) => !$("f-" + id).value).length
+    ? " La ciudad de matrícula viene en el reverso de la tarjeta: sube esa foto o escríbela." : "";
+  const av = $("formato-aviso");
+  av.textContent = "Revisa los campos con borde ámbar (placa, motor, VIN, chasis y cédula) contra la tarjeta: el OCR los confunde." + sinLeer;
+  av.hidden = false;
+}
+
+/* La plantilla se guarda en el navegador (IndexedDB): no sube a ningún servidor ni al repositorio. */
+function abrirBD() {
+  return new Promise((ok, fallo) => {
+    const r = indexedDB.open("ac-liquidador", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("archivos");
+    r.onsuccess = () => ok(r.result);
+    r.onerror = () => fallo(r.error);
+  });
+}
+async function guardarPlantilla(nombre, bytes) {
+  try {
+    const db = await abrirBD();
+    await new Promise((ok, fallo) => { const t = db.transaction("archivos", "readwrite"); t.objectStore("archivos").put({ nombre, bytes }, "plantilla"); t.oncomplete = ok; t.onerror = () => fallo(t.error); });
+    return true;
+  } catch (e) { return false; }
+}
+async function leerPlantilla() {
+  try {
+    const db = await abrirBD();
+    return await new Promise((ok, fallo) => { const q = db.transaction("archivos").objectStore("archivos").get("plantilla"); q.onsuccess = () => ok(q.result || null); q.onerror = () => fallo(q.error); });
+  } catch (e) { return null; }
+}
+let plantillaActual = null;   // { nombre, bytes }
+
+function pintarPlantilla(guardada) {
+  $("plantilla-estado").textContent = plantillaActual
+    ? `Plantilla: ${plantillaActual.nombre}${guardada ? " (se recuerda en este navegador)" : " (solo para esta sesión: el navegador no permite guardarla)"}.`
+    : "Elígela una vez; el navegador la recordará. No se sube a ningún servidor.";
+}
+
+async function alElegirPlantilla(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  if (!/\.xlsx$/i.test(f.name)) { $("formato-aviso").textContent = "La plantilla debe ser un archivo .xlsx."; $("formato-aviso").hidden = false; ev.target.value = ""; return; }
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  plantillaActual = { nombre: f.name, bytes };
+  pintarPlantilla(await guardarPlantilla(f.name, bytes));
+  ev.target.value = "";
+}
+
+function cargarJSZip() {
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  return new Promise((ok, fallo) => {
+    const s = document.createElement("script");
+    s.src = JSZIP_URL; s.onload = () => ok(window.JSZip);
+    s.onerror = () => fallo(new Error("No se pudo cargar el generador de Excel. Revisa tu internet."));
+    document.head.append(s);
+  });
+}
+
+async function descargarExcel() {
+  const aviso = $("formato-aviso"), ok = $("formato-ok");
+  aviso.hidden = true; ok.hidden = true;
+  if (!plantillaActual) { aviso.textContent = "Primero elige tu plantilla de Excel (Documentos Compra De Vehiculos.xlsx)."; aviso.hidden = false; return; }
+  const btn = $("descargar"); btn.disabled = true; btn.textContent = "Generando…";
+  try {
+    const valores = {};
+    document.querySelectorAll("[data-campo]").forEach((i) => { valores[i.dataset.campo] = i.value; });
+    const { bytes } = await Formatos.llenarPlantilla(await cargarJSZip(), plantillaActual.bytes, Formatos.valoresPorCelda(valores));
+    const placa = (valores.placa || "vehiculo").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    const a = document.createElement("a"); a.href = url; a.download = `Documentos Compra ${placa}.xlsx`;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+    const vacios = Formatos.CAMPOS.filter((c) => !c.auto && c.etiqueta && !String(valores[c.id] || "").trim() && c.id !== "potencia" && c.id !== "p_nombre2" && c.id !== "c_nombre2")
+      .map((c) => (c.grupo === "vehiculo" ? "" : c.grupo === "propietario" ? "propietario: " : "comprador: ") + c.etiqueta.toLowerCase());
+    ok.textContent = `Descargado: Documentos Compra ${placa}.xlsx. Ábrelo en Excel: se recalcula al abrir.` + (vacios.length ? ` Quedaron vacíos: ${vacios.join(", ")}.` : "");
+    ok.hidden = false;
+  } catch (e) { aviso.textContent = e.message; aviso.hidden = false; }
+  finally { btn.disabled = false; btn.textContent = "Descargar Excel lleno"; }
+}
 
 /* ---------- Mes del impuesto ---------- */
 
@@ -722,7 +895,7 @@ function nueva() {
   ultimo = null; tarjeta = null;
   $("cotizacion").hidden = true; $("vacio").hidden = false;
   $("foto-estado").hidden = true; $("foto-aviso").hidden = true;
-  ocultarCandidatas();
+  ocultarCandidatas(); limpiarCamposFormato();
   $("form").reset(); alternarEstado(); cargarTramites(); actualizarHintMes();
   cargarMarcas();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -748,9 +921,13 @@ for (const id of MONTOS) $(id).addEventListener("input", (e) => { formatearMonto
 for (const id of ["traspaso", "tramitador", "prenda"]) $(id).addEventListener("change", guardarTramites);
 $("usaPrenda").addEventListener("change", () => { if ($("usaPrenda").checked && !monto("prenda")) ponerMonto("prenda", CONFIG.tramites.prenda); });
 $("foto").addEventListener("change", alElegirFoto);
+$("plantilla").addEventListener("change", alElegirPlantilla);
+$("descargar").addEventListener("click", descargarExcel);
 $("form").addEventListener("submit", calcular);
 $("imprimir").addEventListener("click", () => window.print());
 $("nueva").addEventListener("click", nueva);
+construirCamposFormato();
+leerPlantilla().then((p) => { plantillaActual = p; pintarPlantilla(true); });
 llenarMeses();
 cargarTramites();
 cargarMarcas();

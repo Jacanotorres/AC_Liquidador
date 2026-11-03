@@ -181,16 +181,117 @@
     if (!servicio) dudas.push("no se leyó el servicio: confirma que sea particular");
     if (!clase) dudas.push("no se leyó la clase del vehículo");
 
+    // Color: lo que hay entre el cilindraje y el servicio ("1.395 GRIS PLATINO METALICO PARTICULAR").
+    let color = null;
+    for (const l of abajo.slice(0, 4)) {
+      const tk = l.split(" ");
+      const iCC = ccTok ? tk.indexOf(ccTok) : -1;
+      if (iCC < 0) continue;
+      const iServ = servicio ? tk.findIndex((t) => t === servicio) : tk.length;
+      const trozo = tk.slice(iCC + 1, iServ < 0 ? tk.length : iServ).filter((t) => t.length > 1);
+      if (trozo.length) { color = trozo.join(" "); break; }
+    }
+
+    // Capacidad de pasajeros: el número pequeño al final de la línea de clase/carrocería/combustible.
+    let pasajeros = null;
+    const lClase = abajo.find((l) => /GASOLINA|DIESEL|ACPM|ELECTRICO|HIBRIDO|GAS/.test(l));
+    if (lClase) {
+      const n = lClase.split(" ").filter((t) => /^\d{1,2}$/.test(t)).pop();
+      if (n && Number(n) > 0 && Number(n) <= 60) pasajeros = Number(n);
+    }
+
+    // Motor, VIN y chasis: en la línea siguiente a "NÚMERO DE MOTOR" y a "NÚMERO DE SERIE / CHASIS".
+    const ventana = lineas.slice(datos.i + 1, datos.i + 14);
+    const largos = (l) => l.split(" ").map((t) => t.replace(/[^A-Z0-9]/g, "")).filter((t) => t.length >= 15 && t.length <= 19 && /\d/.test(t));
+    const iMotor = ventana.findIndex((l) => /MOTOR/.test(l));
+    const iSerie = ventana.findIndex((l) => /SERIE|CHASIS|CHAS/.test(l));
+    let motor = null;
+    const lMotor = iMotor >= 0 ? ventana[iMotor + 1] : null;
+    if (lMotor) motor = lMotor.split(" ").map((t) => t.replace(/[^A-Z0-9]/g, "")).find((t) => t.length >= 5 && t.length < 15 && /\d/.test(t) && t !== "REG") || null;
+    const lecturas = [...(lMotor ? largos(lMotor) : []), ...(iSerie >= 0 && ventana[iSerie + 1] ? largos(ventana[iSerie + 1]) : [])];
+    if (!lecturas.length) ventana.forEach((l) => lecturas.push(...largos(l)));
+    const vin = consensoVIN(lecturas);
+    if (!vin) dudas.push("no se leyó el VIN/chasis");
+    else if (vin.length !== 17) dudas.push("el VIN/chasis no tiene 17 caracteres: revísalo");
+    else dudas.push("verifica el VIN y el chasis contra la tarjeta (el OCR los confunde)");
+    if (!motor) dudas.push("no se leyó el número de motor");
+
+    // Propietario: "APELLIDOS NOMBRES C.C. 123456789" (o NIT / C.E.).
+    let propietario = null;
+    for (const l of ventana) {
+      const m = l.match(/^(.*?)\s(C\.?\s?C\.?|NIT|C\.?\s?E\.?)\s+([\d.,]{5,})\s*$/);
+      if (!m) continue;
+      const nombre = m[1].split(" ").filter((t) => t.length > 1 && /^[A-Z]+$/.test(t));
+      if (nombre.length < 2) continue;
+      propietario = { tokens: nombre, documento_tipo: m[2].replace(/[.\s]/g, ""), documento: m[3].replace(/\D/g, ""), ...separarNombre(nombre) };
+      break;
+    }
+    if (!propietario) dudas.push("no se leyó el nombre ni la cédula del propietario");
+
     return {
       es_tarjeta: true, placa: placa.placa, marca: datos.marca, linea: datos.linea || null, modelo: datos.modelo,
       cilindraje_cc: ccTok ? cilindrajeANumero(ccTok) : null, clase, carroceria,
       combustible: comb.length ? [...new Set(comb)].join(" ") : null, servicio,
-      pasajeros: null, color: null, organismo_transito: null, dudas,
+      pasajeros, color, motor, vin, chasis: vin, propietario, organismo_transito: null, dudas,
     };
   }
 
+  /* VIN / chasis: se votan los caracteres de las lecturas de 17 posiciones (el OCR falla en posiciones
+     distintas cada vez). Un VIN no usa I, O ni Q: se leen como 1, 0 y 0. Siempre se marca para revisar. */
+  function consensoVIN(lecturas) {
+    const limpias = lecturas.map((t) => t.replace(/[IOQ]/g, (c) => (c === "I" ? "1" : "0")));
+    const exactas = limpias.filter((t) => t.length === 17);
+    const base = exactas.length ? exactas : limpias.slice().sort((a, b) => Math.abs(a.length - 17) - Math.abs(b.length - 17)).slice(0, 1);
+    if (!base.length) return null;
+    if (base.length === 1) return base[0];
+    let vin = "";
+    for (let i = 0; i < 17; i++) {
+      const cuenta = {};
+      for (const t of base) cuenta[t[i]] = (cuenta[t[i]] || 0) + 1;
+      // gana el más repetido; en empate, el de la primera lectura
+      vin += Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a] || base[0].indexOf(a, i) - base[0].indexOf(b, i))[0];
+    }
+    return vin;
+  }
+
+  const PARTICULAS = new Set(["DE", "DEL", "LA", "LAS", "LOS", "SAN", "SANTA", "VAN", "VON", "MC", "MAC"]);
+
+  /* "CANO DELGADO ANDRES EDUARDO" (la tarjeta pone apellidos primero) -> 2 apellidos + nombres.
+     Une las partículas ("DE LA CRUZ", "DEL RIO") con el apellido que sigue. Es una sugerencia editable. */
+  function separarNombre(tokens) {
+    const unidades = [];
+    let pendiente = [];
+    for (const t of tokens) {
+      pendiente.push(t);
+      if (!PARTICULAS.has(t)) { unidades.push(pendiente.join(" ")); pendiente = []; }
+    }
+    if (pendiente.length) unidades.push(pendiente.join(" "));
+    const [apellido1 = "", apellido2 = "", nombre1 = "", ...resto] = unidades;
+    // Con solo 3 partes se asume 2 apellidos + 1 nombre.
+    return { apellido1, apellido2, nombre1, nombre2: resto.join(" ") };
+  }
+
+  /* Reverso de la tarjeta: organismo de tránsito (ciudad de matrícula). */
+  function interpretarReverso(texto) {
+    const lineas = String(texto ?? "").split(/\r?\n/).map(limpiar).filter(Boolean);
+    const esReverso = lineas.some((l) => /ORGANISMO|IMPORTACION|BLINDAJE|RESTRICCION|LIMITACION/.test(l));
+    let ciudad = null, organismo = null;
+    const iOrg = lineas.findIndex((l) => /\bTTO\b|TRANSITO|STRIA|SECRETARIA|MCPAL|MUNICIPAL|DEPTAL/.test(l) && /[A-Z]{4,}/.test(l) && !/ORGANISMO/.test(l));
+    const candidatas = [lineas[iOrg], ...lineas.filter((l) => /MCPAL|MUNICIPAL|DEPTAL|DEPARTAMENTAL/.test(l))].filter(Boolean);
+    for (const l of candidatas) {
+      const m = l.match(/(?:MCPAL|MUNICIPAL|DEPTAL|DEPARTAMENTAL)\s+(?:DE\s+)?([A-Z ]{3,})$/);
+      if (m) {
+        organismo = l;
+        // El OCR suele pegar ruido de 1-2 letras al final ("ARMENIA AL"): se descarta.
+        ciudad = m[1].split(" ").filter((t) => t.length > 2).join(" ") || null;
+        break;
+      }
+    }
+    return { es_reverso: esReverso || !!ciudad, ciudad, organismo_transito: organismo };
+  }
+
   const api = { norm, decidirTabla, elegirMarca, rankearLineas, anioParaTabla, cilindrajeANumero,
-    interpretarOCR, normalizarPlaca };
+    interpretarOCR, interpretarReverso, normalizarPlaca, separarNombre, consensoVIN };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.Tarjeta = api;
 })(typeof window !== "undefined" ? window : globalThis);
