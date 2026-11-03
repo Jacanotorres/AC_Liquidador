@@ -4,6 +4,19 @@ Página para concesionarios que calcula el impuesto vehicular anual de un carro 
 gravable oficial del Ministerio de Transporte. No consulta portales de gobernaciones: usa las
 tablas del Ministerio guardadas en Supabase y las tarifas del decreto de Hacienda.
 
+## Cómo se usa (3 pasos)
+
+1. **Vehículo.** Sube la foto de la tarjeta de propiedad (frente y reverso, tocando o arrastrando) o elige
+   el vehículo a mano. Si la línea no es única, se muestran las opciones del Ministerio con su avalúo
+   para elegir la versión exacta.
+2. **Cotización.** Escribe valor, descuento, SOAT y trámites: la cotización se calcula sola mientras
+   escribes. Se puede enviar por WhatsApp, copiar o imprimir/PDF.
+3. **Formatos.** Elige tu plantilla de Excel una vez y descarga el archivo lleno. Se ve cuántos campos
+   faltan por grupo.
+
+Arriba, un resumen con el vehículo y el valor final queda a la vista en todos los pasos; "Empezar de
+nuevo" borra la operación. En el celular, el valor final queda fijo abajo mientras se arma la cotización.
+
 ## Archivos
 
 | Ruta | Qué es |

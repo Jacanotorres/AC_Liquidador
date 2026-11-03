@@ -10,7 +10,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
-
 <style>
   /* Paleta tomada del logo de AC Studio: azul marino profundo, azul eléctrico y rojo, con el degradado
      azul -> violeta -> rojo del símbolo. Modo oscuro por defecto; el claro sigue la preferencia del sistema. */
@@ -74,7 +73,7 @@
     font: 16px/1.55 "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 72px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 22px 16px 90px; }
 
   /* Marca */
   .marca { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -82,31 +81,91 @@
   .marca-texto { line-height: 1.1; }
   .studio { font-weight: 600; font-size: 17px; letter-spacing: .5em; text-indent: .1em; }
   .lema { font-size: 9.5px; letter-spacing: .42em; color: var(--muted); margin-top: 5px; font-weight: 500; }
+  .marca-acciones { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .dealer {
-    margin-left: auto; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
     border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; background: var(--card);
   }
-  .hero { margin: 34px 0 26px; }
-  h1 { margin: 0; font-size: clamp(26px, 5.4vw, 38px); line-height: 1.12; font-weight: 700; letter-spacing: -.01em; }
-  .barra { width: 64px; height: 4px; border-radius: 4px; background: var(--degradado); margin: 14px 0 14px; box-shadow: 0 0 18px rgba(122, 77, 255, .5); }
+  .hero { margin: 26px 0 18px; }
+  @media (max-width: 559px) {
+    .simbolo { height: 36px; }
+    .studio { font-size: 14px; letter-spacing: .4em; }
+    .lema { font-size: 8px; letter-spacing: .3em; margin-top: 3px; }
+    .marca { gap: 10px; }
+    .marca-acciones { margin-left: 0; width: 100%; justify-content: space-between; flex-wrap: nowrap; }
+    .dealer { font-size: 10px; padding: 5px 10px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .marca-acciones .suave { white-space: nowrap; min-height: 36px; padding: 5px 11px; }
+    .hero { margin: 14px 0 10px; }
+    .hero .lead { display: none; }
+    .barra { margin: 10px 0 0; }
+    h1 { font-size: 23px; }
+    .titulo-paso { font-size: 19px; }
+  }
+  h1 { margin: 0; font-size: clamp(25px, 5.2vw, 36px); line-height: 1.12; font-weight: 700; letter-spacing: -.01em; }
+  .barra { width: 64px; height: 4px; border-radius: 4px; background: var(--degradado); margin: 14px 0 12px; box-shadow: 0 0 18px rgba(122, 77, 255, .5); }
   .lead { margin: 0; color: var(--muted); max-width: 64ch; }
 
-  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; margin-top: 22px; }
-  @media (min-width: 860px) { .grid { grid-template-columns: 1.1fr .9fr; align-items: start; } }
+  /* Pasos */
+  .pasos {
+    position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    padding: 10px 0 12px; margin-bottom: 4px; background: var(--bg);
+    box-shadow: 0 12px 18px -12px var(--bg);
+  }
+  .paso {
+    display: flex; align-items: center; gap: 11px; text-align: left; padding: 10px 12px; min-height: 56px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px; color: var(--ink);
+  }
+  .paso .n {
+    flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13.5px;
+    border: 1.5px solid var(--line-fuerte); color: var(--muted); transition: background .2s, border-color .2s, color .2s;
+  }
+  .paso .t { display: flex; flex-direction: column; font-weight: 600; font-size: 14px; line-height: 1.25; min-width: 0; }
+  .paso .t small { font-weight: 500; font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .paso.activo { border-color: var(--azul-claro); background: var(--accent-soft); box-shadow: 0 0 0 1px var(--azul-claro), 0 8px 26px rgba(47, 123, 255, .22); }
+  .paso.activo .n { background: var(--degradado); border-color: transparent; color: #fff; }
+  .paso.hecho .n { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); font-size: 0; }
+  .paso.hecho .n::after { content: "✓"; font-size: 15px; }
+  .paso.hecho.activo .n { background: var(--degradado); border-color: transparent; color: #fff; }
+  @media (max-width: 559px) {
+    .pasos { gap: 6px; }
+    .paso { padding: 8px 9px; gap: 8px; flex-direction: column; text-align: center; justify-content: center; }
+    .paso .t { align-items: center; font-size: 12.5px; }
+    .paso .t small { display: none; }
+  }
+
+  .resumen {
+    display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin: 6px 0 16px; padding: 12px 16px;
+    background: var(--card); border: 1px solid var(--line-fuerte); border-radius: 14px; box-shadow: var(--sombra);
+  }
+  .resumen .r-nombre { font-weight: 700; font-size: 15px; }
+  .resumen .r-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .resumen .r-total { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .resumen .r-total small { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; text-align: right; }
+
+  .panel { animation: aparece .25s ease; }
+  @keyframes aparece { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .titulo-paso { margin: 8px 0 4px; font-size: 21px; font-weight: 700; letter-spacing: -.005em; outline: none; }
+  .intro { margin: 0 0 16px; color: var(--muted); font-size: 14.5px; max-width: 70ch; }
+
+  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .grid { grid-template-columns: 1.05fr .95fr; align-items: start; } .col-cot { position: sticky; top: 92px; } }
+  .apila > * + * { margin-top: 16px; }
 
   .card {
-    position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 22px;
+    position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px;
     box-shadow: var(--sombra); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
   }
   .card::before {
     content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; border-radius: 18px 18px 0 0;
     background: var(--degradado); opacity: .75; pointer-events: none;
   }
-  .card h2 { margin: 0 0 14px; font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
+  .card-t { margin: 0 0 14px; font-size: 12.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; }
 
   .field { margin-bottom: 14px; }
   label, .label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; letter-spacing: .01em; }
   .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .hint.err { color: var(--danger); }
   select, input[type="text"], input[type="password"] {
     width: 100%; min-height: 46px; padding: 9px 13px; font: inherit; font-size: 15px; color: var(--ink);
     background: var(--campo); border: 1px solid var(--line); border-radius: 12px;
@@ -117,7 +176,7 @@
   select:hover:not(:disabled), input[type="text"]:hover:not(:disabled) { border-color: var(--line-fuerte); }
   select:focus-visible, input:focus-visible { outline: none; border-color: var(--azul-claro); box-shadow: var(--foco); }
   select:disabled, input:disabled { opacity: .5; cursor: not-allowed; }
-  button:focus-visible, .seg label:has(input:focus-visible), .filebtn:has(input:focus-visible), .cand:has(input:focus-visible) {
+  button:focus-visible, .seg label:has(input:focus-visible), .zona:has(input:focus-visible), .filebtn:has(input:focus-visible), .cand:has(input:focus-visible) {
     outline: 2px solid var(--azul-claro); outline-offset: 2px;
   }
   .row { display: grid; gap: 12px; grid-template-columns: 1fr; }
@@ -128,8 +187,9 @@
     flex: 1; margin: 0; padding: 10px 12px; text-align: center; font-weight: 500; cursor: pointer; font-size: 14.5px;
     min-height: 46px; display: flex; align-items: center; justify-content: center; transition: background .15s;
   }
-  .seg input, .filebtn input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+  .seg input, .filebtn input, .zona input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
   .seg label:has(input:checked) { background: linear-gradient(135deg, #2f7bff, #5a4dff); color: #fff; font-weight: 600; }
+  .seg.modo { margin-bottom: 16px; max-width: 460px; }
 
   button, .filebtn {
     font: inherit; font-size: 14.5px; min-height: 48px; padding: 10px 18px; border-radius: 12px; cursor: pointer;
@@ -145,20 +205,51 @@
   .filebtn.alt { background: transparent; color: var(--ink); border: 1px solid var(--line-fuerte); box-shadow: none; font-weight: 600; }
   .filebtn.alt:hover { border-color: var(--azul-claro); filter: none; }
   button.primary {
-    width: 100%; font-weight: 700; letter-spacing: .02em; color: #fff; border-color: transparent;
+    font-weight: 700; letter-spacing: .02em; color: #fff; border-color: transparent;
     background: var(--degradado); box-shadow: 0 10px 30px rgba(122, 77, 255, .35);
   }
   button.primary:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 14px 36px rgba(122, 77, 255, .5); }
+  button.suave { min-height: 40px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
   button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .pasos-nav { display: flex; gap: 12px; justify-content: space-between; margin-top: 20px; flex-wrap: wrap; }
+  .pasos-nav .primary { flex: 1 1 240px; }
+  .pasos-nav .atras { flex: 0 1 auto; }
+
+  /* Zona de la foto */
+  .zona {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; cursor: pointer;
+    padding: 30px 18px; border: 2px dashed var(--line-fuerte); border-radius: 18px; margin: 0; background: var(--accent-soft);
+    transition: border-color .2s, background .2s, box-shadow .2s, transform .12s;
+  }
+  .zona:hover, .zona.arrastrando { border-color: var(--azul-claro); box-shadow: 0 0 0 4px rgba(47, 123, 255, .16), 0 10px 40px rgba(47, 123, 255, .25); }
+  .zona.arrastrando { background: rgba(47, 123, 255, .28); transform: scale(1.01); }
+  .zona svg { width: 46px; height: 46px; color: var(--azul-claro); }
+  .zona .z-t { font-size: 17px; font-weight: 700; letter-spacing: -.005em; }
+  .zona .z-s { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .consejos { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .minis { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .minis img { height: 56px; width: auto; border-radius: 8px; border: 1px solid var(--line-fuerte); }
+  details.priv { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+  details.priv summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  details.priv svg { width: 14px; height: 14px; flex: none; color: var(--ok); }
+  details.priv p { margin: 8px 0 0; line-height: 1.55; }
+  #foto-estado.leyendo::before {
+    content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 50%;
+    border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite;
+  }
+  @keyframes gira { to { transform: rotate(360deg); } }
 
   .msg { border-radius: 12px; padding: 11px 14px; margin-top: 12px; font-size: 13.5px; border: 1px solid transparent; }
   .error { background: var(--danger-soft); color: var(--danger); border-color: rgba(255, 61, 51, .28); }
   .aviso { background: var(--warn-soft); color: var(--warn); border-color: rgba(255, 184, 64, .26); }
   .ok { background: var(--ok-soft); color: var(--ok); border-color: rgba(48, 200, 120, .26); }
   .empty { color: var(--muted); font-size: 14.5px; }
+  #error { margin: 0 0 14px; }
 
   fieldset { border: 1px solid var(--line); border-radius: 14px; margin: 0 0 14px; padding: 12px 14px 4px; min-width: 0; }
   legend { font-size: 11.5px; font-weight: 600; padding: 0 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--azul-claro); }
+  fieldset.card { padding: 20px; margin-bottom: 0; }
+  fieldset.card legend { padding: 0 8px; }
   .cand {
     display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line);
     border-radius: 12px; margin-bottom: 8px; cursor: pointer; font-weight: 500; font-size: 14px; transition: border-color .15s, background .15s;
@@ -174,16 +265,21 @@
   details.grupo { border: 1px solid var(--line); border-radius: 14px; padding: 4px 14px 2px; margin-bottom: 12px; background: rgba(255, 255, 255, .02); }
   details.grupo > summary { cursor: pointer; font-weight: 600; font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; padding: 11px 0; }
   details.grupo > summary::marker { color: var(--azul-claro); }
+  details.grupo > summary .cuenta { float: right; letter-spacing: .04em; text-transform: none; color: var(--muted); font-weight: 600; }
+  details.grupo > summary .cuenta.completo { color: var(--ok); }
   .campos { display: grid; gap: 0 12px; grid-template-columns: 1fr; padding-top: 4px; }
   @media (min-width: 560px) { .campos { grid-template-columns: 1fr 1fr; } }
   @media (min-width: 860px) { .campos { grid-template-columns: 1fr 1fr 1fr; } }
   input.dudoso { border-color: #f0a91c; box-shadow: inset 0 0 0 1px #f0a91c; }
+  .progreso { margin: 4px 0 16px; }
+  .progreso .barra-p { height: 8px; border-radius: 8px; background: var(--campo); border: 1px solid var(--line); overflow: hidden; }
+  .progreso .barra-p i { display: block; height: 100%; width: 0; background: var(--degradado); border-radius: 8px; transition: width .3s; }
+  .progreso .txt { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 500; }
 
   /* Cotización */
   .quote-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .quote-head strong { font-size: 17px; letter-spacing: .01em; }
   .quote-head .no { font-size: 12.5px; color: var(--muted); white-space: pre-line; }
-  @media (min-width: 1100px) { .quote-head #q-numero { text-align: right; } }
   dl { margin: 0; }
   .line { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
   .line dt { color: var(--muted); }
@@ -197,17 +293,33 @@
   .total .v { font-size: clamp(28px, 6.4vw, 38px); font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; letter-spacing: -.01em; }
   .note { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.55; }
   .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
-  .actions button { flex: 1; }
+  .actions button { flex: 1 1 140px; }
   [hidden] { display: none !important; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  .barra-total {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--bg); border-top: 1px solid var(--line-fuerte);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, .35);
+  }
+  .barra-total small { display: block; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .barra-total strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .barra-total button { margin-left: auto; min-height: 42px; }
+  @media (min-width: 860px) { .barra-total { display: none !important; } }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--bg);
+    padding: 10px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
   @media print {
     :root { --bg:#fff; --card:#fff; --ink:#000; --muted:#444; --line:#ccc; --line-fuerte:#bbb; --total-fondo:#f0f0f0; }
     body { background: #fff !important; color: #000; }
-    .no-print, .hero .lead { display: none !important; }
+    .no-print, .hero .lead, .pasos, .resumen, .col-form, .pasos-nav, .barra-total, .toast, .titulo-paso, .intro, .marca-acciones .btn-nueva { display: none !important; }
     .grid { display: block; margin-top: 0; }
     .card { border: 0; padding: 0; box-shadow: none; background: #fff; backdrop-filter: none; }
     .card::before { display: none; }
+    .col-cot { position: static; }
     .simbolo { filter: none; height: 38px; }
     .studio, .lema { color: #000; }
     .dealer { border-color: #bbb; color: #000; }
@@ -224,183 +336,264 @@
         <div class="studio">STUDIO</div>
         <div class="lema">ANALYSIS &amp; CREATION</div>
       </div>
-      <div class="dealer" id="dealer"></div>
+      <div class="marca-acciones">
+        <div class="dealer" id="dealer"></div>
+        <button type="button" class="suave btn-nueva no-print" id="nueva" title="Borra todo y vuelve al paso 1">↺ Empezar de nuevo</button>
+      </div>
     </div>
     <div class="hero">
       <h1>Cotizador de vehículos</h1>
       <div class="barra" aria-hidden="true"></div>
-      <p class="lead">Lee la tarjeta de propiedad con una foto o elige el vehículo, y genera la cotización con el impuesto calculado con la base gravable oficial del Ministerio de Transporte.</p>
+      <p class="lead">En 3 pasos: identifica el vehículo, arma la cotización y descarga los formatos de compra.</p>
     </div>
   </header>
 
-  <section class="card no-print" aria-labelledby="h-foto">
-    <h2 id="h-foto">Leer la tarjeta de propiedad</h2>
-    <div class="field">
-      <label class="filebtn" for="foto">Tomar o subir foto(s) de la tarjeta<input id="foto" type="file" accept="image/*" multiple></label>
-      <div class="hint">Puedes elegir el frente y el reverso a la vez. El frente trae el vehículo y el propietario; el reverso, la ciudad de matrícula.</div>
-    </div>
-    <div class="msg ok" id="foto-estado" role="status" hidden></div>
-    <div class="msg aviso" id="foto-aviso" hidden></div>
-    <p class="hint">Fotografía la tarjeta con buena luz y sin reflejos. La lectura se hace en tu propio dispositivo: la foto no se envía a ningún servidor y no se guarda. También se lee el nombre y la cédula del propietario para llenar los formatos; esos datos tampoco salen de tu dispositivo. La primera vez descarga el lector de texto (unos 15 MB). Revisa siempre lo leído.</p>
-  </section>
+  <nav class="pasos no-print" aria-label="Pasos de la cotización">
+    <button type="button" class="paso activo" data-paso="1" aria-current="step"><span class="n">1</span><span class="t">Vehículo<small id="paso1-sub">Foto o a mano</small></span></button>
+    <button type="button" class="paso" data-paso="2"><span class="n">2</span><span class="t">Cotización<small id="paso2-sub">Valores y trámites</small></span></button>
+    <button type="button" class="paso" data-paso="3"><span class="n">3</span><span class="t">Formatos<small id="paso3-sub">Excel de compra</small></span></button>
+  </nav>
 
-  <div class="grid">
-    <section class="card no-print" aria-labelledby="h-vehiculo">
-      <h2 id="h-vehiculo">Vehículo</h2>
-      <form id="form" novalidate>
-        <div class="field">
-          <label for="tabla">Tipo de vehículo</label>
-          <select id="tabla"></select>
+  <div class="msg error no-print" id="error" role="alert" hidden></div>
+
+  <div class="resumen no-print" id="resumen" hidden aria-live="polite">
+    <div class="r-nombre" id="r-nombre"></div>
+    <div class="r-chips" id="r-chips"></div>
+    <div class="r-total" id="r-total" hidden><small>Valor final</small><span id="r-total-v"></span></div>
+  </div>
+
+  <form id="form" novalidate>
+    <!-- ============ PASO 1: VEHÍCULO ============ -->
+    <section id="paso-1" class="panel no-print" aria-labelledby="h-paso1">
+      <h2 class="titulo-paso" id="h-paso1" tabindex="-1">¿Qué vehículo es?</h2>
+      <p class="intro">Sube la foto de la tarjeta de propiedad y lo leemos por ti. Si no la tienes a la mano, puedes elegirlo a mano.</p>
+
+      <div class="seg modo" role="radiogroup" aria-label="Cómo identificar el vehículo">
+        <label><input type="radio" name="modo" value="foto" checked> Con la foto de la tarjeta</label>
+        <label><input type="radio" name="modo" value="mano"> Elegirlo a mano</label>
+      </div>
+
+      <div class="apila">
+        <div class="card" id="modo-foto">
+          <h3 class="card-t">Foto de la tarjeta de propiedad</h3>
+          <label class="zona" id="zona" for="foto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2A1 1 0 0 1 10.2 4h3.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>
+            <span class="z-t">Toma o sube la foto de la tarjeta</span>
+            <span class="z-s">Puedes elegir el frente y el reverso a la vez, o arrastrarlas hasta aquí</span>
+            <span class="consejos"><span class="chip">Buena luz</span><span class="chip">Sin reflejos</span><span class="chip">Tarjeta completa y derecha</span></span>
+            <input id="foto" type="file" accept="image/*" multiple>
+          </label>
+          <div class="minis" id="minis"></div>
+          <div class="msg ok" id="foto-estado" role="status" hidden></div>
+          <div class="msg aviso" id="foto-aviso" hidden></div>
+          <details class="priv">
+            <summary><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Tu foto no sale de este dispositivo</summary>
+            <p>La lectura se hace en tu propio dispositivo: la foto no se envía a ningún servidor y no se guarda. También se lee el nombre y la cédula del propietario para llenar los formatos; esos datos tampoco salen de aquí. La primera vez descarga el lector de texto (unos 15 MB). Revisa siempre lo leído.</p>
+          </details>
         </div>
-        <div class="row two">
+
+        <div class="card" id="modo-mano" hidden>
+          <h3 class="card-t">Elegir el vehículo</h3>
           <div class="field">
-            <label for="marca">Marca</label>
-            <select id="marca" disabled><option value="">Cargando…</option></select>
+            <label for="tabla">Tipo de vehículo</label>
+            <select id="tabla"></select>
           </div>
-          <div class="field">
-            <label for="filtro">Buscar línea</label>
-            <input id="filtro" type="text" placeholder="Ej. corolla, spark" autocomplete="off" disabled>
+          <div class="row two">
+            <div class="field">
+              <label for="marca">Marca</label>
+              <select id="marca" disabled><option value="">Cargando…</option></select>
+            </div>
+            <div class="field">
+              <label for="filtro">Buscar línea</label>
+              <input id="filtro" type="text" placeholder="Ej. corolla, spark" autocomplete="off" disabled>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label for="linea">Línea y cilindraje</label>
+            <select id="linea" disabled><option value="">Primero elige la marca</option></select>
+            <div class="hint" id="lineas-hint"></div>
           </div>
         </div>
 
-        <fieldset id="candidatas" hidden>
-          <legend>Opciones parecidas en la tabla del Ministerio</legend>
+        <fieldset class="card" id="candidatas" hidden>
+          <legend>¿Cuál es la versión? Opciones del Ministerio</legend>
           <div id="cand-lista"></div>
           <p class="hint" id="cand-hint"></p>
         </fieldset>
 
-        <div class="field">
-          <label for="linea">Línea y cilindraje</label>
-          <select id="linea" disabled><option value="">Primero elige la marca</option></select>
-          <div class="hint" id="lineas-hint"></div>
-        </div>
-
-        <div class="row two">
-          <div class="field">
-            <label for="placa">Placa</label>
-            <input id="placa" type="text" autocomplete="off" maxlength="8" placeholder="Ej. ABC123" style="text-transform:uppercase">
-          </div>
-          <div class="field">
-            <span class="label" id="estado-l">Estado</span>
-            <div class="seg" role="radiogroup" aria-labelledby="estado-l">
-              <label><input type="radio" name="estado" value="usado" checked> Usado</label>
-              <label><input type="radio" name="estado" value="nuevo"> Nuevo</label>
-            </div>
-          </div>
-        </div>
-
-        <div class="field" id="f-anio">
-          <label for="anio">Año modelo</label>
-          <select id="anio" disabled><option value="">Primero elige la línea</option></select>
-        </div>
-        <div class="field" id="f-factura" hidden>
-          <label for="factura">Valor de la factura, sin IVA</label>
-          <input id="factura" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
-          <div class="hint">En vehículos nuevos la base es el valor de la factura sin IVA, no la tabla.</div>
-        </div>
-
-        <div class="field">
-          <label for="regimen">Registro del vehículo</label>
-          <select id="regimen">
-            <option value="1">Normal</option>
-            <option value="0.45">San Andrés (45 % del avalúo)</option>
-            <option value="0.5">Internado temporalmente en zona de frontera (50 %)</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="mes">Mes desde el cual se cobra el impuesto</label>
-          <select id="mes"></select>
-          <div class="hint" id="mes-hint"></div>
-        </div>
-
-        <fieldset>
-          <legend>Valores de la cotización</legend>
-          <div class="field">
-            <label for="cliente">Cliente (opcional)</label>
-            <input id="cliente" type="text" autocomplete="off">
-          </div>
+        <div class="card">
+          <h3 class="card-t">Detalles del vehículo</h3>
           <div class="row two">
             <div class="field">
-              <label for="precio">Valor del vehículo</label>
-              <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              <label for="placa">Placa</label>
+              <input id="placa" type="text" autocomplete="off" maxlength="8" placeholder="Ej. ABC123" style="text-transform:uppercase">
             </div>
             <div class="field">
-              <label for="descuento">Descuento</label>
-              <input id="descuento" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              <span class="label" id="estado-l">Estado</span>
+              <div class="seg" role="radiogroup" aria-labelledby="estado-l">
+                <label><input type="radio" name="estado" value="usado" checked> Usado</label>
+                <label><input type="radio" name="estado" value="nuevo"> Nuevo</label>
+              </div>
             </div>
           </div>
-          <div class="row two">
-            <div class="field">
-              <label for="soat">SOAT</label>
-              <input id="soat" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="traspaso">Traspaso</label>
-              <input id="traspaso" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
-            </div>
+          <div class="field" id="f-anio" style="margin-bottom:0">
+            <label for="anio">Año modelo</label>
+            <select id="anio" disabled><option value="">Primero elige la línea</option></select>
           </div>
-          <div class="row two">
-            <div class="field">
-              <label for="tramitador">Tramitador</label>
-              <input id="tramitador" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
-            </div>
-            <div class="field">
-              <label class="check" for="usaPrenda"><input id="usaPrenda" type="checkbox"> Incluir prenda</label>
-              <input id="prenda" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off" aria-label="Valor de la prenda">
-            </div>
+          <div class="field" id="f-factura" hidden style="margin-bottom:0">
+            <label for="factura">Valor de la factura, sin IVA</label>
+            <input id="factura" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            <div class="hint">En vehículos nuevos la base es el valor de la factura sin IVA, no la tabla.</div>
           </div>
-          <p class="hint" style="margin:0 0 12px">Sin valor del vehículo, la cotización muestra solo el impuesto. Traspaso, tramitador y prenda se recuerdan en este navegador.</p>
-        </fieldset>
+        </div>
+      </div>
 
-        <button class="primary" id="calcular" type="submit" disabled>Calcular cotización</button>
-        <div class="msg error" id="error" role="alert" hidden></div>
-      </form>
-    </section>
-
-    <section class="card" aria-labelledby="h-cot" aria-live="polite">
-      <h2 id="h-cot" class="no-print">Cotización</h2>
-      <p class="empty no-print" id="vacio">Lee la tarjeta o elige el vehículo y pulsa “Calcular cotización”.</p>
-      <div id="cotizacion" hidden>
-        <div class="quote-head">
-          <div>
-            <strong id="q-vehiculo"></strong><br>
-            <span class="no" id="q-detalle"></span>
-          </div>
-          <div class="no" id="q-numero"></div>
-        </div>
-        <dl id="q-filas"></dl>
-        <div class="total">
-          <div class="t" id="q-total-t"></div>
-          <div class="v" id="q-total"></div>
-        </div>
-        <p class="note" id="q-nota"></p>
-        <div class="actions no-print">
-          <button type="button" id="imprimir">Imprimir o guardar PDF</button>
-          <button type="button" id="nueva">Nueva cotización</button>
-        </div>
+      <div class="pasos-nav">
+        <button type="button" class="primary" id="ir-cot" disabled>Continuar a la cotización →</button>
       </div>
     </section>
-  </div>
-  <section class="card no-print" id="c-formatos" aria-labelledby="h-formatos" style="margin-top:20px">
-    <h2 id="h-formatos">Formatos de compra (Excel)</h2>
-    <p class="hint" style="margin-top:-6px">Llena la hoja “Datos Basicos” de tu plantilla y todos los formatos (traspaso, compraventa, mandatos y consignaciones) se actualizan solos. Lo leído de la tarjeta aparece ya escrito; completa el resto. Los campos con borde ámbar vienen del OCR y conviene verificarlos con la tarjeta antes de imprimir.</p>
-    <div class="row two" style="margin-top:12px">
-      <div class="field">
-        <span class="label">Plantilla de Excel</span>
-        <label class="filebtn alt" for="plantilla">Elegir “Documentos Compra De Vehiculos.xlsx”<input id="plantilla" type="file" accept=".xlsx"></label>
-        <div class="hint" id="plantilla-estado"></div>
+
+    <!-- ============ PASO 2: COTIZACIÓN ============ -->
+    <section id="paso-2" class="panel" hidden aria-labelledby="h-paso2">
+      <h2 class="titulo-paso no-print" id="h-paso2" tabindex="-1">Arma la cotización</h2>
+      <p class="intro no-print">Escribe los valores y la cotización se calcula sola, a la derecha. Los campos vacíos simplemente no aparecen.</p>
+      <div class="grid">
+        <div class="col-form apila no-print">
+          <div class="card">
+            <h3 class="card-t">Valores</h3>
+            <div class="field">
+              <label for="cliente">Cliente (opcional)</label>
+              <input id="cliente" type="text" autocomplete="off" placeholder="Nombre del cliente">
+            </div>
+            <div class="row two">
+              <div class="field" style="margin-bottom:0">
+                <label for="precio">Valor del vehículo</label>
+                <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label for="descuento">Descuento</label>
+                <input id="descuento" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+                <div class="hint err" id="descuento-hint" hidden>El descuento no puede ser mayor que el valor del vehículo.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-t">Trámites</h3>
+            <div class="row two">
+              <div class="field">
+                <label for="soat">SOAT</label>
+                <input id="soat" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="traspaso">Traspaso</label>
+                <input id="traspaso" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              </div>
+            </div>
+            <div class="row two">
+              <div class="field" style="margin-bottom:0">
+                <label for="tramitador">Tramitador</label>
+                <input id="tramitador" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label class="check" for="usaPrenda"><input id="usaPrenda" type="checkbox"> Incluir prenda</label>
+                <input id="prenda" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off" aria-label="Valor de la prenda">
+              </div>
+            </div>
+            <p class="hint">Traspaso, tramitador y prenda se recuerdan en este navegador para la próxima cotización.</p>
+          </div>
+
+          <div class="card">
+            <h3 class="card-t">Impuesto del vehículo</h3>
+            <div class="field">
+              <label for="mes">Mes desde el cual se cobra</label>
+              <select id="mes"></select>
+              <div class="hint" id="mes-hint"></div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label for="regimen">Registro del vehículo</label>
+              <select id="regimen">
+                <option value="1">Normal</option>
+                <option value="0.45">San Andrés (45 % del avalúo)</option>
+                <option value="0.5">Internado temporalmente en zona de frontera (50 %)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-cot">
+          <section class="card" aria-labelledby="h-cot" aria-live="polite">
+            <h3 class="card-t no-print" id="h-cot">Cotización</h3>
+            <div id="vacio" class="no-print">
+              <p class="empty" style="margin-top:0">Aún no hay un vehículo. Primero identifícalo en el paso 1.</p>
+              <button type="button" class="suave" id="ir-paso1">← Ir al paso 1</button>
+            </div>
+            <div id="cotizacion" hidden>
+              <div class="quote-head">
+                <div>
+                  <strong id="q-vehiculo"></strong><br>
+                  <span class="no" id="q-detalle"></span>
+                </div>
+                <div class="no" id="q-numero"></div>
+              </div>
+              <dl id="q-filas"></dl>
+              <div class="total">
+                <div class="t" id="q-total-t"></div>
+                <div class="v" id="q-total"></div>
+              </div>
+              <p class="note" id="q-nota"></p>
+              <div class="actions no-print">
+                <button type="button" id="whatsapp" class="primary">Enviar por WhatsApp</button>
+                <button type="button" id="copiar">Copiar resumen</button>
+                <button type="button" id="imprimir">Imprimir / PDF</button>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
-      <div class="field">
-        <span class="label">Archivo</span>
-        <button class="primary" type="button" id="descargar">Descargar Excel lleno</button>
+
+      <div class="pasos-nav no-print">
+        <button type="button" class="atras" id="atras-2">← Vehículo</button>
+        <button type="button" class="primary" id="ir-formatos">Continuar a los formatos →</button>
       </div>
+    </section>
+  </form>
+
+  <!-- ============ PASO 3: FORMATOS ============ -->
+  <section id="paso-3" class="panel no-print" hidden aria-labelledby="h-paso3">
+    <h2 class="titulo-paso" id="h-paso3" tabindex="-1">Formatos de compra</h2>
+    <p class="intro">Llena la hoja “Datos Basicos” de tu plantilla de Excel y todos los formatos (traspaso, compraventa, mandatos y consignaciones) se actualizan solos. Lo leído de la tarjeta ya está escrito; completa el resto. Los campos con borde ámbar vienen del OCR: verifícalos con la tarjeta antes de imprimir.</p>
+    <div class="card" id="c-formatos">
+      <div class="row two">
+        <div class="field">
+          <span class="label">1 · Tu plantilla de Excel</span>
+          <label class="filebtn alt" for="plantilla">Elegir “Documentos Compra De Vehiculos.xlsx”<input id="plantilla" type="file" accept=".xlsx"></label>
+          <div class="hint" id="plantilla-estado"></div>
+        </div>
+        <div class="field">
+          <span class="label">2 · Descarga el archivo lleno</span>
+          <button class="primary" type="button" id="descargar" style="width:100%">Descargar Excel lleno</button>
+        </div>
+      </div>
+      <div class="msg aviso" id="formato-aviso" hidden></div>
+      <div class="msg ok" id="formato-ok" hidden></div>
+      <div class="progreso" id="progreso">
+        <div class="barra-p"><i id="progreso-barra"></i></div>
+        <div class="txt" id="progreso-txt"></div>
+      </div>
+      <div id="campos-formato"></div>
     </div>
-    <div class="msg aviso" id="formato-aviso" hidden></div>
-    <div class="msg ok" id="formato-ok" hidden></div>
-    <div id="campos-formato" style="margin-top:14px"></div>
+    <div class="pasos-nav">
+      <button type="button" class="atras" id="atras-3">← Cotización</button>
+    </div>
   </section>
 </div>
+
+<div class="barra-total no-print" id="barra-total" hidden>
+  <div><small>Valor final</small><strong id="bt-valor"></strong></div>
+  <button type="button" class="primary" id="bt-ver">Ver detalle</button>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="tarjeta.js"></script>
 <script src="formatos.js"></script>
@@ -430,9 +623,10 @@ const $ = (id) => document.getElementById(id);
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
 const MONTOS = ["precio", "descuento", "soat", "traspaso", "tramitador", "prenda", "factura"];
 let lineas = [];          // líneas de la marca elegida
-let ultimo = null;        // último cálculo, para la cotización
+let ultimo = null;        // último cálculo (base, tarifa e impuesto) y lo necesario para pintar la cotización
 let tarjeta = null;       // datos leídos de la tarjeta, si se usó la foto
-let opcionesVistas = [];  // candidatas mostradas tras leer la tarjeta
+let pasoActual = 1;
+let descargado = false;   // ya se bajó el Excel de esta operación
 
 const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } };
 const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -469,15 +663,26 @@ async function rpc(fn, args) {
   return data;
 }
 
-function mostrarError(msg) { const e = $("error"); e.textContent = msg; e.hidden = !msg; }
+function mostrarError(msg) {
+  const e = $("error"); e.textContent = msg; e.hidden = !msg;
+  if (msg) e.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function aviso(msg) {
+  const t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => { t.hidden = true; }, 2600);
+}
 function soloDigitos(s) { return (s || "").replace(/\D/g, ""); }
 function monto(id) { return Number(soloDigitos($(id).value)) || 0; }
 function ponerMonto(id, n) { $(id).value = n ? "$ " + Number(n).toLocaleString("es-CO") : ""; }
 function formatearMonto(input) { ponerMonto(input.id, soloDigitos(input.value)); }
 function esNuevo() { return document.querySelector('input[name="estado"]:checked').value === "nuevo"; }
+function vehiculoListo() { return !!($("linea").value && (esNuevo() ? soloDigitos($("factura").value) : $("anio").value)); }
+
+/* Cada cambio del vehículo actualiza botón, resumen y pasos, y recalcula la cotización. */
 function actualizarBoton() {
-  const ok = $("linea").value && (esNuevo() ? soloDigitos($("factura").value) : $("anio").value);
-  $("calcular").disabled = !ok;
+  $("ir-cot").disabled = !vehiculoListo();
+  programarCalculo();
+  actualizarResumen();
 }
 
 function llenar(select, opciones, placeholder) {
@@ -540,11 +745,76 @@ function alternarEstado() {
   actualizarBoton();
 }
 
+/* ---------- Navegación por pasos ---------- */
+
+function irAPaso(n) {
+  pasoActual = n;
+  for (const i of [1, 2, 3]) $("paso-" + i).hidden = i !== n;
+  document.querySelectorAll(".paso").forEach((b) => {
+    const activo = Number(b.dataset.paso) === n;
+    b.classList.toggle("activo", activo);
+    if (activo) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+  });
+  const h = $("h-paso" + n);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (h) h.focus({ preventScroll: true });
+  actualizarResumen();
+}
+
+/* Marca como hechos los pasos completos y resume cada uno en su subtítulo. */
+function actualizarPasos() {
+  const ok1 = vehiculoListo();
+  const ok2 = !!(ultimo && monto("precio") > 0);
+  const [llenos, total] = contarCampos();
+  const ok3 = descargado;
+  const marcar = (n, hecho) => document.querySelector(`.paso[data-paso="${n}"]`).classList.toggle("hecho", hecho);
+  marcar(1, ok1); marcar(2, ok2); marcar(3, ok3);
+  $("paso1-sub").textContent = ok1 ? (($("placa").value.trim() || nombreVehiculo() || "Listo")) : "Foto o a mano";
+  $("paso2-sub").textContent = ok2 && ultimo.total ? COP.format(ultimo.total) : "Valores y trámites";
+  $("paso3-sub").textContent = llenos ? `${llenos} de ${total} campos` : "Excel de compra";
+}
+
+function nombreVehiculo() {
+  if (tarjeta && (tarjeta.marca || tarjeta.linea)) return [tarjeta.marca, tarjeta.linea].filter(Boolean).join(" ");
+  const l = lineas.find((x) => String(x.id) === $("linea").value);
+  return l ? `${$("marca").value} ${l.linea}` : "";
+}
+
+/* La barra del resumen mantiene a la vista cuál es el vehículo y el valor final en todos los pasos. */
+function actualizarResumen() {
+  const listo = vehiculoListo();
+  $("resumen").hidden = !listo;
+  if (listo) {
+    $("r-nombre").textContent = nombreVehiculo();
+    const l = lineas.find((x) => String(x.id) === $("linea").value);
+    const chips = [
+      esNuevo() ? "Nuevo" : ($("anio").value ? (Number($("anio").value) === 2001 ? "Modelo 2001 o anterior" : "Modelo " + $("anio").value) : null),
+      tarjeta && tarjeta.cilindraje_cc ? tarjeta.cilindraje_cc + " cc" : (l && l.cilindraje ? l.cilindraje + " cc" : null),
+      $("placa").value.trim().toUpperCase() || null,
+    ].filter(Boolean);
+    $("r-chips").innerHTML = "";
+    for (const c of chips) { const s = document.createElement("span"); s.className = "chip"; s.textContent = c; $("r-chips").append(s); }
+    const conTotal = !!(ultimo && ultimo.total && monto("precio") > 0);
+    $("r-total").hidden = !conTotal;
+    if (conTotal) $("r-total-v").textContent = COP.format(ultimo.total);
+  }
+  actualizarPasos();
+  actualizarBarraTotal();
+}
+
+let cotVisible = false;
+function actualizarBarraTotal() {
+  const mostrar = pasoActual === 2 && !!(ultimo && ultimo.total && monto("precio") > 0) && !cotVisible;
+  $("barra-total").hidden = !mostrar;
+  if (mostrar) $("bt-valor").textContent = COP.format(ultimo.total);
+}
+
 /* ---------- Lectura de la tarjeta ---------- */
 
 const TESSERACT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
 let lector = null;        // worker de Tesseract, se reutiliza entre fotos
 let marcasConocidas = null;
+let urlsMinis = [];
 
 function cargarTesseract() {
   if (window.Tesseract) return Promise.resolve(window.Tesseract);
@@ -611,25 +881,36 @@ async function leerFotos(archivos) {
     if (reverso && reverso.ciudad) $("f-ciudad_matricula").value = reverso.ciudad;
     throw new Error(reverso
       ? "Esa foto es el reverso. Sube también el frente de la tarjeta (el lado con la placa y la marca)."
-      : "No pude leer la tarjeta. Toma otra foto con más luz y sin reflejos, o llena los datos a mano.");
+      : "No pude leer la tarjeta. Toma otra foto con más luz y sin reflejos, o elige el vehículo a mano.");
   }
   if (reverso && reverso.ciudad) frente.ciudad_matricula = reverso.ciudad;
   return frente;
 }
 
-async function alElegirFoto(ev) {
-  const archivos = [...ev.target.files];
+function pintarMiniaturas(archivos) {
+  urlsMinis.forEach((u) => URL.revokeObjectURL(u)); urlsMinis = [];
+  const cont = $("minis"); cont.innerHTML = "";
+  archivos.forEach((f, i) => {
+    const u = URL.createObjectURL(f); urlsMinis.push(u);
+    const img = document.createElement("img"); img.src = u; img.alt = `Foto ${i + 1} de la tarjeta`;
+    cont.append(img);
+  });
+}
+
+async function procesarFotos(archivos) {
   if (!archivos.length) return;
   mostrarError(""); $("foto-aviso").hidden = true;
+  pintarMiniaturas(archivos);
   const estado = $("foto-estado");
-  estado.hidden = false; estado.textContent = "Preparando la foto…";
+  estado.hidden = false; estado.classList.add("leyendo"); estado.textContent = "Preparando la foto…";
   try {
     const d = await leerFotos(archivos);
+    estado.classList.remove("leyendo");
     llenarCamposFormato(d);
     try { await aplicarTarjeta(d); }
     catch (e) { mostrarError(e.message + " Los formatos de Excel sí se pueden llenar con lo leído."); }
   } catch (e) { estado.hidden = true; mostrarError(e.message); }
-  finally { ev.target.value = ""; }
+  finally { estado.classList.remove("leyendo"); actualizarResumen(); }
 }
 
 /* Busca la línea en la tabla preferida y, si no hay un parecido claro, en las demás. */
@@ -668,11 +949,12 @@ async function aplicarTarjeta(d) {
   const avisos = [];
   if (d.dudas && d.dudas.length) avisos.push("Datos dudosos en la foto: " + d.dudas.join("; ") + ".");
   if (!mejor) {
-    avisos.push(`No encontré la marca ${d.marca || ""} en las tablas del Ministerio. Elige el vehículo manualmente.`);
+    avisos.push(`No encontré la marca ${d.marca || ""} en las tablas del Ministerio. Elígela a mano.`);
     $("foto-aviso").textContent = avisos.join(" "); $("foto-aviso").hidden = false;
     ocultarCandidatas();
     $("tabla").value = String(t.tabla);
     await cargarMarcas();   // deja la selección vacía para no cotizar el vehículo de la lectura anterior
+    cambiarModo("mano");
     return;
   }
 
@@ -684,9 +966,10 @@ async function aplicarTarjeta(d) {
   if (mejor.ranking[0].nombre < 0.5) avisos.push("No hay una coincidencia clara con la línea de la tarjeta: elige la opción correcta o busca la línea a mano.");
   if (mejor.tabla !== t.tabla) avisos.push("La línea se encontró en otra tabla del Ministerio que la esperada por la clase del vehículo.");
   const l0 = mejor.ranking[0].linea;
-  const { aviso } = Tarjeta.anioParaTabla(l0.anios, d.modelo);
-  if (aviso) avisos.push(aviso);
+  const { aviso: avisoAnio } = Tarjeta.anioParaTabla(l0.anios, d.modelo);
+  if (avisoAnio) avisos.push(avisoAnio);
   $("foto-aviso").textContent = avisos.join(" "); $("foto-aviso").hidden = !avisos.length;
+  $("candidatas").scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function mostrarCandidatas(ranking, d) {
@@ -698,7 +981,6 @@ async function mostrarCandidatas(ranking, d) {
     catch (e) { /* sin avalúo para ese año: se muestra sin valor */ }
     return { r, base };
   }));
-  opcionesVistas = filas;
   filas.forEach(({ r, base }, i) => {
     const et = document.createElement("label"); et.className = "cand";
     const radio = document.createElement("input"); radio.type = "radio"; radio.name = "cand"; radio.value = r.linea.id;
@@ -729,7 +1011,12 @@ function elegirCandidata(id) {
   actualizarBoton();
 }
 
-function ocultarCandidatas() { $("candidatas").hidden = true; $("cand-lista").innerHTML = ""; opcionesVistas = []; }
+function ocultarCandidatas() { $("candidatas").hidden = true; $("cand-lista").innerHTML = ""; }
+
+function cambiarModo(modo) {
+  document.querySelector(`input[name="modo"][value="${modo}"]`).checked = true;
+  $("modo-foto").hidden = modo !== "foto"; $("modo-mano").hidden = modo !== "mano";
+}
 
 /* ---------- Formatos de compra (Excel) ---------- */
 
@@ -738,32 +1025,64 @@ const GRUPOS = [
   { id: "propietario", titulo: "Datos del propietario (vendedor)", abierto: true },
   { id: "comprador", titulo: "Datos del comprador", abierto: true },
 ];
+const OPCIONALES = new Set(["potencia", "p_nombre2", "c_nombre2"]);
 const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
 
 function construirCamposFormato() {
   const cont = $("campos-formato"); cont.innerHTML = "";
   for (const g of GRUPOS) {
-    const det = document.createElement("details"); det.className = "grupo"; det.open = g.abierto;
-    const sum = document.createElement("summary"); sum.textContent = g.titulo;
+    const det = document.createElement("details"); det.className = "grupo"; det.open = g.abierto; det.dataset.grupo = g.id;
+    const sum = document.createElement("summary");
+    const tit = document.createElement("span"); tit.textContent = g.titulo;
+    const cuenta = document.createElement("span"); cuenta.className = "cuenta";
+    sum.append(tit, cuenta);
     const rejilla = document.createElement("div"); rejilla.className = "campos";
     for (const c of Formatos.CAMPOS.filter((x) => x.grupo === g.id)) {
       const f = document.createElement("div"); f.className = "field";
-      const l = document.createElement("label"); l.htmlFor = "f-" + c.id; l.textContent = c.etiqueta;
+      const l = document.createElement("label"); l.htmlFor = "f-" + c.id;
+      l.textContent = c.etiqueta + (OPCIONALES.has(c.id) ? " (opcional)" : "");
       const i = document.createElement("input");
       Object.assign(i, { id: "f-" + c.id, type: "text", autocomplete: "off" });
       i.dataset.campo = c.id; i.dataset.revisar = c.revisar ? "1" : "";
       i.style.textTransform = "uppercase";
       if (c.tipo === "digitos") i.inputMode = "numeric";
-      i.addEventListener("input", () => i.classList.remove("dudoso"));
+      i.addEventListener("input", () => { i.classList.remove("dudoso"); actualizarProgreso(); });
       f.append(l, i); rejilla.append(f);
     }
     det.append(sum, rejilla); cont.append(det);
   }
+  actualizarProgreso();
+}
+
+/* Campos obligatorios llenos / total, por grupo y en general. */
+function contarCampos() {
+  let llenos = 0, total = 0;
+  document.querySelectorAll("[data-campo]").forEach((i) => {
+    if (OPCIONALES.has(i.dataset.campo)) return;
+    total++; if (i.value.trim()) llenos++;
+  });
+  return [llenos, total];
+}
+
+function actualizarProgreso() {
+  const [llenos, total] = contarCampos();
+  if (!total) return;
+  $("progreso-barra").style.width = Math.round((llenos / total) * 100) + "%";
+  $("progreso-txt").textContent = llenos === total
+    ? "Todos los campos están completos. Ya puedes descargar el Excel."
+    : `${llenos} de ${total} campos completos. Lo que falte puede quedar en blanco o completarse después en Excel.`;
+  document.querySelectorAll("details.grupo").forEach((d) => {
+    let ll = 0, tt = 0;
+    d.querySelectorAll("[data-campo]").forEach((i) => { if (OPCIONALES.has(i.dataset.campo)) return; tt++; if (i.value.trim()) ll++; });
+    const c = d.querySelector(".cuenta"); c.textContent = `${ll}/${tt}`; c.classList.toggle("completo", ll === tt);
+  });
+  actualizarPasos();
 }
 
 function limpiarCamposFormato() {
   document.querySelectorAll("[data-campo]").forEach((i) => { i.value = ""; i.classList.remove("dudoso"); });
   $("formato-aviso").hidden = true; $("formato-ok").hidden = true;
+  actualizarProgreso();
 }
 
 /* Lo leído de la tarjeta se escribe en los campos; los que el OCR confunde con facilidad quedan marcados. */
@@ -780,6 +1099,7 @@ function llenarCamposFormato(d) {
   const av = $("formato-aviso");
   av.textContent = "Revisa los campos con borde ámbar (placa, motor, VIN, chasis y cédula) contra la tarjeta: el OCR los confunde." + sinLeer;
   av.hidden = false;
+  actualizarProgreso();
 }
 
 /* La plantilla se guarda en el navegador (IndexedDB): no sube a ningún servidor ni al repositorio. */
@@ -833,9 +1153,9 @@ function cargarJSZip() {
 }
 
 async function descargarExcel() {
-  const aviso = $("formato-aviso"), ok = $("formato-ok");
-  aviso.hidden = true; ok.hidden = true;
-  if (!plantillaActual) { aviso.textContent = "Primero elige tu plantilla de Excel (Documentos Compra De Vehiculos.xlsx)."; aviso.hidden = false; return; }
+  const av = $("formato-aviso"), ok = $("formato-ok");
+  av.hidden = true; ok.hidden = true;
+  if (!plantillaActual) { av.textContent = "Primero elige tu plantilla de Excel (Documentos Compra De Vehiculos.xlsx)."; av.hidden = false; return; }
   const btn = $("descargar"); btn.disabled = true; btn.textContent = "Generando…";
   try {
     const valores = {};
@@ -845,11 +1165,12 @@ async function descargarExcel() {
     const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
     const a = document.createElement("a"); a.href = url; a.download = `Documentos Compra ${placa}.xlsx`;
     document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
-    const vacios = Formatos.CAMPOS.filter((c) => !c.auto && c.etiqueta && !String(valores[c.id] || "").trim() && c.id !== "potencia" && c.id !== "p_nombre2" && c.id !== "c_nombre2")
+    const vacios = Formatos.CAMPOS.filter((c) => !c.auto && c.etiqueta && !String(valores[c.id] || "").trim() && !OPCIONALES.has(c.id))
       .map((c) => (c.grupo === "vehiculo" ? "" : c.grupo === "propietario" ? "propietario: " : "comprador: ") + c.etiqueta.toLowerCase());
     ok.textContent = `Descargado: Documentos Compra ${placa}.xlsx. Ábrelo en Excel: se recalcula al abrir.` + (vacios.length ? ` Quedaron vacíos: ${vacios.join(", ")}.` : "");
     ok.hidden = false;
-  } catch (e) { aviso.textContent = e.message; aviso.hidden = false; }
+    descargado = true; actualizarPasos();
+  } catch (e) { av.textContent = e.message; av.hidden = false; }
   finally { btn.disabled = false; btn.textContent = "Descargar Excel lleno"; }
 }
 
@@ -880,27 +1201,36 @@ function actualizarHintMes() {
 
 /* ---------- Cálculo y cotización ---------- */
 
-async function calcular(ev) {
-  ev.preventDefault();
-  mostrarError("");
+/* La cotización se recalcula sola. Solo se consulta al servidor si cambió el vehículo, el año, la factura o el
+   registro; los demás cambios (valores, trámites, mes) se pintan al instante con el último resultado. */
+let calcTimer = null, calcSeq = 0;
+function programarCalculo() { clearTimeout(calcTimer); calcTimer = setTimeout(recalcular, 280); }
+
+async function recalcular() {
   const nuevo = esNuevo();
   const l = lineas.find((x) => String(x.id) === $("linea").value);
-  if (!l) return;
-  const precio = monto("precio"), descuento = monto("descuento");
-  if (descuento > precio && precio) { mostrarError("El descuento no puede ser mayor que el valor del vehículo."); return; }
+  if (!l || !vehiculoListo()) { ultimo = null; sinCotizacion(); return; }
   const factura = nuevo ? monto("factura") : null;
   const anio = nuevo ? Math.max(...l.anios) : Number($("anio").value);
   const factor = Number($("regimen").value);
+  const clave = [l.id, anio, nuevo, factura, factor].join("|");
 
-  $("calcular").disabled = true; $("calcular").textContent = "Calculando…";
+  if (ultimo && ultimo.clave === clave) { pintarCotizacion(); return; }
+  const seq = ++calcSeq;
   try {
     const filas = await rpc("calcular_impuesto_vehicular", {
       p_vehiculo_id: Number(l.id), p_anio_modelo: anio, p_valor_factura: factura, p_factor: factor,
     });
-    ultimo = { r: filas[0], l, nuevo, anio, factor, mes: $("mes").value };
+    if (seq !== calcSeq) return;           // llegó una respuesta más nueva
+    ultimo = { r: filas[0], l, nuevo, anio, factor, clave };
+    mostrarError("");
     pintarCotizacion();
-  } catch (e) { mostrarError(e.message); }
-  finally { $("calcular").textContent = "Calcular cotización"; actualizarBoton(); }
+  } catch (e) { if (seq === calcSeq) { ultimo = null; sinCotizacion(); mostrarError(e.message); } }
+}
+
+function sinCotizacion() {
+  $("cotizacion").hidden = true; $("vacio").hidden = false;
+  actualizarResumen();
 }
 
 function fila(dl, etiqueta, valor, fuerte) {
@@ -911,7 +1241,13 @@ function fila(dl, etiqueta, valor, fuerte) {
 }
 
 function pintarCotizacion() {
-  const { r, l, nuevo, anio, factor, mes } = ultimo;
+  const { r, l, nuevo, anio, factor } = ultimo;
+  const precio = monto("precio"), descuento = monto("descuento");
+  const descuentoMal = !!(precio && descuento > precio);
+  $("descuento-hint").hidden = !descuentoMal;
+  if (descuentoMal) return;                  // se deja la cotización anterior hasta corregir el descuento
+
+  const mes = $("mes").value;
   const meses = mesesDelCobro(mes);
   const parcial = meses !== 12;
   const impuesto = parcial ? Math.round(r.impuesto * meses / 12) : r.impuesto;
@@ -919,7 +1255,7 @@ function pintarCotizacion() {
   const ahora = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const placa = $("placa").value.trim().toUpperCase();
-  const nombre = tarjeta && (tarjeta.marca || tarjeta.linea) ? [tarjeta.marca, tarjeta.linea].filter(Boolean).join(" ") : `${$("marca").value} ${l.linea}`;
+  const nombre = nombreVehiculo();
   $("q-vehiculo").textContent = placa ? `${nombre} · ${placa}` : nombre;
   $("q-detalle").textContent = [
     l.cilindraje ? "Cilindraje " + l.cilindraje : null,
@@ -930,36 +1266,38 @@ function pintarCotizacion() {
     ahora.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
 
   const dl = $("q-filas"); dl.innerHTML = "";
+  const filas = [];                           // también sirve para compartir y copiar
+  const add = (e, v, fuerte) => { fila(dl, e, v, fuerte); filas.push([e, v]); };
   const cliente = $("cliente").value.trim();
-  if (cliente) fila(dl, "Cliente", cliente);
+  if (cliente) add("Cliente", cliente);
 
-  const precio = monto("precio"), descuento = monto("descuento");
   const soat = monto("soat"), traspaso = monto("traspaso"), tramitador = monto("tramitador");
   const prenda = $("usaPrenda").checked ? monto("prenda") : 0;
   const nota = [`Valor estimado para la vigencia ${CONFIG.vigencia}, a título informativo.`];
+  let total, totalTitulo;
 
   if (precio) {
     const conDescuento = precio - descuento;
     const papeles = impuesto + soat + traspaso + tramitador + prenda;
-    fila(dl, "Valor del vehículo", COP.format(precio));
-    if (descuento) fila(dl, "Descuento", COP.format(-descuento));
-    fila(dl, "Valor con descuento", COP.format(conDescuento), true);
-    fila(dl, parcial ? `Impuesto departamento (${rango}: ${meses}/12)` : "Impuesto departamento", COP.format(impuesto));
-    if (soat) fila(dl, "SOAT", COP.format(soat));
-    if (traspaso) fila(dl, "Traspaso", COP.format(traspaso));
-    if (tramitador) fila(dl, "Tramitador", COP.format(tramitador));
-    if (prenda) fila(dl, "Prenda", COP.format(prenda));
-    fila(dl, "Total papeles", COP.format(papeles), true);
-    $("q-total-t").textContent = "Valor final";
-    $("q-total").textContent = COP.format(conDescuento + papeles);
+    add("Valor del vehículo", COP.format(precio));
+    if (descuento) add("Descuento", COP.format(-descuento));
+    add("Valor con descuento", COP.format(conDescuento), true);
+    add(parcial ? `Impuesto departamento (${rango}: ${meses}/12)` : "Impuesto departamento", COP.format(impuesto));
+    if (soat) add("SOAT", COP.format(soat));
+    if (traspaso) add("Traspaso", COP.format(traspaso));
+    if (tramitador) add("Tramitador", COP.format(tramitador));
+    if (prenda) add("Prenda", COP.format(prenda));
+    add("Total papeles", COP.format(papeles), true);
+    totalTitulo = "Valor final"; total = conDescuento + papeles;
   } else {
-    fila(dl, nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)", COP.format(r.base_gravable));
-    fila(dl, "Tarifa", (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %");
-    if (parcial) fila(dl, "Impuesto anual", COP.format(r.impuesto));
-    $("q-total-t").textContent = parcial
-      ? `Impuesto estimado (${rango}: ${meses} de 12 meses)` : "Impuesto vehicular anual estimado";
-    $("q-total").textContent = COP.format(impuesto);
+    add(nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)", COP.format(r.base_gravable));
+    add("Tarifa", (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %");
+    if (parcial) add("Impuesto anual", COP.format(r.impuesto));
+    totalTitulo = parcial ? `Impuesto estimado (${rango}: ${meses} de 12 meses)` : "Impuesto vehicular anual estimado";
+    total = impuesto;
   }
+  $("q-total-t").textContent = totalTitulo;
+  $("q-total").textContent = COP.format(total);
 
   const tarifaTxt = (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 });
   if (precio) {
@@ -974,9 +1312,41 @@ function pintarCotizacion() {
   nota.push("Fuente: " + CONFIG.fuente + ".");
   $("q-nota").textContent = nota.join(" ");
 
+  ultimo.total = total; ultimo.totalTitulo = totalTitulo; ultimo.filas = filas;
+  ultimo.titulo = `${$("q-vehiculo").textContent} (${$("q-detalle").textContent})`;
   $("vacio").hidden = true; $("cotizacion").hidden = false;
-  if (window.matchMedia("(max-width: 859px)").matches) $("cotizacion").scrollIntoView({ behavior: "smooth", block: "start" });
+  actualizarResumen();
 }
+
+/* ---------- Compartir ---------- */
+
+function textoResumen() {
+  if (!ultimo || !ultimo.filas) return "";
+  const dealer = CONFIG.concesionario && !/^Nombre del/i.test(CONFIG.concesionario) ? ` · ${CONFIG.concesionario}` : "";
+  return [
+    `*Cotización${dealer}*`, ultimo.titulo, "",
+    ...ultimo.filas.map(([e, v]) => `${e}: ${v}`), "",
+    `*${ultimo.totalTitulo}: ${COP.format(ultimo.total)}*`, "",
+    "Valores estimados. La liquidación oficial del impuesto la hace la gobernación del lugar de matrícula.",
+  ].join("\n");
+}
+
+function enviarWhatsApp() {
+  const t = textoResumen(); if (!t) return;
+  window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener");
+}
+
+async function copiarResumen() {
+  const t = textoResumen(); if (!t) return;
+  try { await navigator.clipboard.writeText(t); }
+  catch (e) {
+    const a = document.createElement("textarea"); a.value = t; a.style.position = "fixed"; a.style.opacity = "0";
+    document.body.append(a); a.select(); try { document.execCommand("copy"); } finally { a.remove(); }
+  }
+  aviso("Resumen copiado");
+}
+
+/* ---------- Reinicio e inicio ---------- */
 
 function cargarTramites() {
   let guardados = {};
@@ -989,19 +1359,36 @@ function guardarTramites() {
 }
 
 function nueva() {
-  ultimo = null; tarjeta = null;
-  $("cotizacion").hidden = true; $("vacio").hidden = false;
-  $("foto-estado").hidden = true; $("foto-aviso").hidden = true;
+  ultimo = null; tarjeta = null; descargado = false; lineas = [];
+  $("foto-estado").hidden = true; $("foto-aviso").hidden = true; $("minis").innerHTML = "";
+  urlsMinis.forEach((u) => URL.revokeObjectURL(u)); urlsMinis = [];
   ocultarCandidatas(); limpiarCamposFormato();
-  $("form").reset(); alternarEstado(); cargarTramites(); actualizarHintMes();
+  $("form").reset(); cambiarModo("foto"); alternarEstado(); cargarTramites(); actualizarHintMes();
+  $("descuento-hint").hidden = true;
+  mostrarError("");
+  sinCotizacion();
   cargarMarcas();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  $("tabla").focus();
+  irAPaso(1);
 }
 
 $("dealer").textContent = CONFIG.concesionario;
 llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
 $("tabla").remove(0); $("tabla").disabled = false;
+
+construirCamposFormato();   // antes de enlazar eventos que usan sus campos (p. ej. la placa)
+
+// Pasos
+document.querySelectorAll(".paso").forEach((b) => b.addEventListener("click", () => irAPaso(Number(b.dataset.paso))));
+$("ir-cot").addEventListener("click", () => irAPaso(2));
+$("ir-formatos").addEventListener("click", () => irAPaso(3));
+$("atras-2").addEventListener("click", () => irAPaso(1));
+$("atras-3").addEventListener("click", () => irAPaso(2));
+$("ir-paso1").addEventListener("click", () => irAPaso(1));
+$("bt-ver").addEventListener("click", () => $("cotizacion").scrollIntoView({ behavior: "smooth", block: "start" }));
+new IntersectionObserver(([e]) => { cotVisible = e.isIntersecting; actualizarBarraTotal(); }, { threshold: 0.15 }).observe($("cotizacion"));
+
+// Vehículo
+document.querySelectorAll('input[name="modo"]').forEach((r) => r.addEventListener("change", () => cambiarModo(r.value)));
 // Si cambian el tipo o la marca a mano, ya no es el vehículo de la tarjeta.
 $("tabla").addEventListener("change", () => { tarjeta = null; ocultarCandidatas(); cargarMarcas(); });
 $("marca").addEventListener("change", () => { tarjeta = null; ocultarCandidatas(); cargarLineas(); });
@@ -1012,22 +1399,47 @@ $("linea").addEventListener("change", () => {
   cargarAnios();
 });
 $("anio").addEventListener("change", actualizarBoton);
-$("mes").addEventListener("change", actualizarHintMes);
+// La placa se escribe en dos lugares (paso 1 y formatos): se mantienen iguales.
+$("placa").addEventListener("input", () => { $("f-placa").value = $("placa").value.toUpperCase(); $("f-placa").classList.remove("dudoso"); actualizarProgreso(); actualizarBoton(); });
+$("f-placa").addEventListener("input", () => { $("placa").value = $("f-placa").value.toUpperCase(); actualizarBoton(); });
 document.querySelectorAll('input[name="estado"]').forEach((r) => r.addEventListener("change", alternarEstado));
+
+// Cotización en vivo
+$("mes").addEventListener("change", () => { actualizarHintMes(); programarCalculo(); });
+$("regimen").addEventListener("change", programarCalculo);
 for (const id of MONTOS) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
+$("cliente").addEventListener("input", programarCalculo);
 for (const id of ["traspaso", "tramitador", "prenda"]) $(id).addEventListener("change", guardarTramites);
-$("usaPrenda").addEventListener("change", () => { if ($("usaPrenda").checked && !monto("prenda")) ponerMonto("prenda", CONFIG.tramites.prenda); });
-$("foto").addEventListener("change", alElegirFoto);
+$("usaPrenda").addEventListener("change", () => {
+  if ($("usaPrenda").checked && !monto("prenda")) ponerMonto("prenda", CONFIG.tramites.prenda);
+  programarCalculo();
+});
+$("form").addEventListener("submit", (e) => { e.preventDefault(); programarCalculo(); });
+$("imprimir").addEventListener("click", () => window.print());
+$("whatsapp").addEventListener("click", enviarWhatsApp);
+$("copiar").addEventListener("click", copiarResumen);
+$("nueva").addEventListener("click", () => { if (!ultimo && !tarjeta && !$("placa").value || confirm("¿Empezar de nuevo? Se borrarán los datos de esta operación.")) nueva(); });
+
+// Foto: elegir o arrastrar
+$("foto").addEventListener("change", (ev) => { const a = [...ev.target.files]; ev.target.value = ""; procesarFotos(a); });
+const zona = $("zona");
+["dragenter", "dragover"].forEach((t) => zona.addEventListener(t, (e) => { e.preventDefault(); zona.classList.add("arrastrando"); }));
+["dragleave", "drop"].forEach((t) => zona.addEventListener(t, (e) => { e.preventDefault(); zona.classList.remove("arrastrando"); }));
+zona.addEventListener("drop", (e) => {
+  const imgs = [...e.dataTransfer.files].filter((f) => f.type.startsWith("image/"));
+  if (!imgs.length) { mostrarError("Suelta una imagen (JPG o PNG) de la tarjeta."); return; }
+  procesarFotos(imgs);
+});
+
+// Formatos
 $("plantilla").addEventListener("change", alElegirPlantilla);
 $("descargar").addEventListener("click", descargarExcel);
-$("form").addEventListener("submit", calcular);
-$("imprimir").addEventListener("click", () => window.print());
-$("nueva").addEventListener("click", nueva);
-construirCamposFormato();
+
 leerPlantilla().then((p) => { plantillaActual = p; pintarPlantilla(true); });
 llenarMeses();
 cargarTramites();
 cargarMarcas();
+actualizarResumen();
 </script>
 </body>
 </html>
