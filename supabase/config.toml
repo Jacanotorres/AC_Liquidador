@@ -1,0 +1,6 @@
+project_id = "sqncxdtjmpqvfyzsvild"
+
+# La página llama con la llave pública (no es un JWT), así que el gateway no puede
+# verificarla. La protección es el código de acceso (x-acceso) que valida la función.
+[functions.leer-tarjeta]
+verify_jwt = false

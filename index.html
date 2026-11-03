@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cotizador de impuesto vehicular</title>
+<title>Cotizador de vehículos</title>
 <style>
   :root {
     --bg: #f5f6f8;
@@ -16,43 +16,49 @@
     --accent-soft: #e8eefc;
     --danger: #b3261e;
     --danger-soft: #fdecea;
+    --warn: #7a4b00;
+    --warn-soft: #fff4de;
+    --ok: #1b6b3a;
     --ok-soft: #eaf6ee;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #0f1218; --card: #181c24; --ink: #eceff4; --muted: #9aa3b2; --line: #2b313d;
       --accent: #6d8cff; --accent-ink: #0f1218; --accent-soft: #1f2740;
-      --danger: #ff8a80; --danger-soft: #3a1f1d; --ok-soft: #1c2b22;
+      --danger: #ff8a80; --danger-soft: #3a1f1d; --warn: #ffd28a; --warn-soft: #3a2c12;
+      --ok: #7fd39b; --ok-soft: #1c2b22;
     }
   }
   :root[data-theme="dark"] {
     --bg: #0f1218; --card: #181c24; --ink: #eceff4; --muted: #9aa3b2; --line: #2b313d;
     --accent: #6d8cff; --accent-ink: #0f1218; --accent-soft: #1f2740;
-    --danger: #ff8a80; --danger-soft: #3a1f1d; --ok-soft: #1c2b22;
+    --danger: #ff8a80; --danger-soft: #3a1f1d; --warn: #ffd28a; --warn-soft: #3a2c12;
+    --ok: #7fd39b; --ok-soft: #1c2b22;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
   header { margin-bottom: 20px; }
   .dealer { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   h1 { margin: 4px 0 6px; font-size: clamp(24px, 5vw, 32px); line-height: 1.15; }
-  .lead { margin: 0; color: var(--muted); max-width: 60ch; }
-  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
-  @media (min-width: 820px) { .grid { grid-template-columns: 1.1fr .9fr; align-items: start; } }
+  .lead { margin: 0; color: var(--muted); max-width: 62ch; }
+  .grid { display: grid; gap: 20px; grid-template-columns: 1fr; margin-top: 20px; }
+  @media (min-width: 860px) { .grid { grid-template-columns: 1.1fr .9fr; align-items: start; } }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
   .card h2 { margin: 0 0 14px; font-size: 17px; }
   .field { margin-bottom: 14px; }
   label, .label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
   .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  select, input[type="text"] {
+  select, input[type="text"], input[type="password"] {
     width: 100%; min-height: 44px; padding: 9px 12px; font: inherit; color: var(--ink);
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
   }
   select:disabled, input:disabled { opacity: .55; cursor: not-allowed; }
-  select:focus-visible, input:focus-visible, button:focus-visible, .seg label:has(input:focus-visible) {
+  select:focus-visible, input:focus-visible, button:focus-visible,
+  .seg label:has(input:focus-visible), .filebtn:has(input:focus-visible), .cand:has(input:focus-visible) {
     outline: 3px solid var(--accent); outline-offset: 1px;
   }
   .row { display: grid; gap: 12px; grid-template-columns: 1fr; }
@@ -62,16 +68,35 @@
     flex: 1; margin: 0; padding: 10px 12px; text-align: center; font-weight: 500; cursor: pointer;
     min-height: 44px; display: flex; align-items: center; justify-content: center;
   }
-  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input, .filebtn input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
   .seg label:has(input:checked) { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  button {
+  button, .filebtn {
     font: inherit; min-height: 46px; padding: 10px 18px; border-radius: 10px; cursor: pointer;
     border: 1px solid var(--line); background: var(--card); color: var(--ink);
   }
+  .filebtn {
+    display: flex; align-items: center; justify-content: center; margin: 0; font-weight: 600;
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent); position: relative;
+  }
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; width: 100%; }
   button:disabled { opacity: .55; cursor: not-allowed; }
-  .error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+  .msg { border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+  .error { background: var(--danger-soft); color: var(--danger); }
+  .aviso { background: var(--warn-soft); color: var(--warn); }
+  .ok { background: var(--ok-soft); color: var(--ok); }
   .empty { color: var(--muted); font-size: 15px; }
+  fieldset { border: 1px solid var(--line); border-radius: 12px; margin: 0 0 14px; padding: 12px 14px 4px; min-width: 0; }
+  legend { font-size: 14px; font-weight: 600; padding: 0 6px; }
+  .cand {
+    display: flex; gap: 10px; align-items: center; padding: 9px 10px; border: 1px solid var(--line);
+    border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-weight: 500;
+  }
+  .cand:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .cand input { margin: 0; flex: none; width: 18px; height: 18px; }
+  .cand span.v { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .cand span.n { min-width: 0; overflow-wrap: anywhere; }
+  .check { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .check input { width: 18px; height: 18px; margin: 0; }
   /* Cotización */
   .quote-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .quote-head .no { font-size: 13px; color: var(--muted); }
@@ -79,6 +104,7 @@
   .line { display: flex; justify-content: space-between; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--line); }
   .line dt { color: var(--muted); }
   .line dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .line.fuerte dt { color: var(--ink); font-weight: 600; }
   .total { margin-top: 14px; background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; }
   .total .t { font-size: 13px; color: var(--muted); }
   .total .v { font-size: clamp(26px, 6vw, 34px); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -90,7 +116,7 @@
     :root { --bg:#fff; --card:#fff; --ink:#000; --muted:#444; --line:#ccc; --accent-soft:#f0f0f0; }
     body { background: #fff; }
     .no-print, header .lead { display: none !important; }
-    .grid { display: block; }
+    .grid { display: block; margin-top: 0; }
     .card { border: 0; padding: 0; }
   }
 </style>
@@ -99,9 +125,26 @@
 <div class="wrap">
   <header>
     <div class="dealer" id="dealer"></div>
-    <h1>Cotizador de impuesto vehicular</h1>
-    <p class="lead">Elige el vehículo y calcula el impuesto anual estimado con la base gravable oficial del Ministerio de Transporte.</p>
+    <h1>Cotizador de vehículos</h1>
+    <p class="lead">Lee la tarjeta de propiedad con una foto o elige el vehículo, y genera la cotización con el impuesto calculado con la base gravable oficial del Ministerio de Transporte.</p>
   </header>
+
+  <section class="card no-print" aria-labelledby="h-foto">
+    <h2 id="h-foto">Leer la tarjeta de propiedad</h2>
+    <div class="row two">
+      <div class="field">
+        <label for="acceso">Código de acceso</label>
+        <input id="acceso" type="password" autocomplete="off" placeholder="El que te dio el administrador">
+      </div>
+      <div class="field">
+        <span class="label">Foto de la tarjeta</span>
+        <label class="filebtn" for="foto">Tomar o subir foto<input id="foto" type="file" accept="image/*"></label>
+      </div>
+    </div>
+    <div class="msg ok" id="foto-estado" role="status" hidden></div>
+    <div class="msg aviso" id="foto-aviso" hidden></div>
+    <p class="hint">Fotografía el lado con los datos del vehículo (placa, marca, línea, modelo, cilindraje). La foto se envía a un servicio de inteligencia artificial solo para leer esos datos: no se guarda y no se lee el nombre ni el documento del propietario. Pide autorización al cliente antes de fotografiar su tarjeta.</p>
+  </section>
 
   <div class="grid">
     <section class="card no-print" aria-labelledby="h-vehiculo">
@@ -121,17 +164,30 @@
             <input id="filtro" type="text" placeholder="Ej. corolla, spark" autocomplete="off" disabled>
           </div>
         </div>
+
+        <fieldset id="candidatas" hidden>
+          <legend>Opciones parecidas en la tabla del Ministerio</legend>
+          <div id="cand-lista"></div>
+          <p class="hint" id="cand-hint"></p>
+        </fieldset>
+
         <div class="field">
           <label for="linea">Línea y cilindraje</label>
           <select id="linea" disabled><option value="">Primero elige la marca</option></select>
           <div class="hint" id="lineas-hint"></div>
         </div>
 
-        <div class="field">
-          <span class="label" id="estado-l">Estado</span>
-          <div class="seg" role="radiogroup" aria-labelledby="estado-l">
-            <label><input type="radio" name="estado" value="usado" checked> Usado</label>
-            <label><input type="radio" name="estado" value="nuevo"> Nuevo</label>
+        <div class="row two">
+          <div class="field">
+            <label for="placa">Placa</label>
+            <input id="placa" type="text" autocomplete="off" maxlength="8" placeholder="Ej. ABC123" style="text-transform:uppercase">
+          </div>
+          <div class="field">
+            <span class="label" id="estado-l">Estado</span>
+            <div class="seg" role="radiogroup" aria-labelledby="estado-l">
+              <label><input type="radio" name="estado" value="usado" checked> Usado</label>
+              <label><input type="radio" name="estado" value="nuevo"> Nuevo</label>
+            </div>
           </div>
         </div>
 
@@ -154,42 +210,65 @@
           </select>
         </div>
 
-        <div class="row two">
+        <fieldset>
+          <legend>Valores de la cotización</legend>
           <div class="field">
             <label for="cliente">Cliente (opcional)</label>
             <input id="cliente" type="text" autocomplete="off">
           </div>
-          <div class="field">
-            <label for="precio">Precio de venta (opcional)</label>
-            <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+          <div class="row two">
+            <div class="field">
+              <label for="precio">Valor del vehículo</label>
+              <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="descuento">Descuento</label>
+              <input id="descuento" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            </div>
           </div>
-        </div>
+          <div class="row two">
+            <div class="field">
+              <label for="soat">SOAT</label>
+              <input id="soat" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="traspaso">Traspaso</label>
+              <input id="traspaso" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            </div>
+          </div>
+          <div class="row two">
+            <div class="field">
+              <label for="tramitador">Tramitador</label>
+              <input id="tramitador" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+            </div>
+            <div class="field">
+              <label class="check" for="usaPrenda"><input id="usaPrenda" type="checkbox"> Incluir prenda</label>
+              <input id="prenda" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off" aria-label="Valor de la prenda">
+            </div>
+          </div>
+          <p class="hint" style="margin:0 0 12px">Sin valor del vehículo, la cotización muestra solo el impuesto. Traspaso, tramitador y prenda se recuerdan en este navegador.</p>
+        </fieldset>
 
         <button class="primary" id="calcular" type="submit" disabled>Calcular cotización</button>
-        <div class="error" id="error" role="alert" hidden></div>
+        <div class="msg error" id="error" role="alert" hidden></div>
       </form>
     </section>
 
     <section class="card" aria-labelledby="h-cot" aria-live="polite">
       <h2 id="h-cot" class="no-print">Cotización</h2>
-      <p class="empty no-print" id="vacio">Completa el vehículo y pulsa “Calcular cotización” para ver el resultado.</p>
+      <p class="empty no-print" id="vacio">Lee la tarjeta o elige el vehículo y pulsa “Calcular cotización”.</p>
       <div id="cotizacion" hidden>
         <div class="quote-head">
           <div>
             <strong id="q-vehiculo"></strong><br>
             <span class="no" id="q-detalle"></span>
           </div>
-          <div class="no" id="q-numero" style="text-align:right"></div>
+          <div class="no" id="q-numero" style="text-align:right;white-space:pre-line"></div>
         </div>
-        <dl>
-          <div class="line" id="q-cliente-l" hidden><dt>Cliente</dt><dd id="q-cliente"></dd></div>
-          <div class="line" id="q-precio-l" hidden><dt>Precio de venta</dt><dd id="q-precio"></dd></div>
-          <div class="line"><dt id="q-base-t">Base gravable</dt><dd id="q-base"></dd></div>
-          <div class="line"><dt>Tarifa</dt><dd id="q-tarifa"></dd></div>
-        </dl>
+        <dl id="q-filas"></dl>
         <div class="total">
-          <div class="t">Impuesto vehicular anual estimado</div>
-          <div class="v" id="q-impuesto"></div>
+          <div class="t" id="q-total-t"></div>
+          <div class="v" id="q-total"></div>
         </div>
         <p class="note" id="q-nota"></p>
         <div class="actions no-print">
@@ -201,6 +280,7 @@
   </div>
 </div>
 
+<script src="tarjeta.js"></script>
 <script>
 /* Configuración: pegar la URL del proyecto y la llave pública (anon o publishable) de Supabase.
    La llave pública es segura aquí: las tablas son de solo lectura (ver supabase-base-gravable.sql). */
@@ -210,6 +290,8 @@ const CONFIG = {
   vigencia: 2026,
   concesionario: "Nombre del concesionario",
   fuente: "Resolución 20253040048935 de 2025 del Ministerio de Transporte y Decreto 1457 de 2025 (tarifas)",
+  /* Valores de ejemplo para precargar; cada concesionario los ajusta en pantalla y quedan guardados. */
+  tramites: { traspaso: 180000, tramitador: 180000, prenda: 280000 },
 };
 
 /* Tipos con tarifa cargada (particulares). Las demás tablas necesitan sus propias tarifas. */
@@ -223,29 +305,39 @@ const TIPOS = [
 
 const $ = (id) => document.getElementById(id);
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+const MONTOS = ["precio", "descuento", "soat", "traspaso", "tramitador", "prenda", "factura"];
 let lineas = [];          // líneas de la marca elegida
 let ultimo = null;        // último cálculo, para la cotización
+let tarjeta = null;       // datos leídos de la tarjeta, si se usó la foto
+let opcionesVistas = [];  // candidatas mostradas tras leer la tarjeta
+
+const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento */ } };
+const leer = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+function cabeceras() {
+  const h = { "Content-Type": "application/json" };
+  if (CONFIG.supabaseKey) {
+    h.apikey = CONFIG.supabaseKey;
+    if (CONFIG.supabaseKey.startsWith("eyJ")) h.Authorization = "Bearer " + CONFIG.supabaseKey;
+  }
+  return h;
+}
+const sinConfigurar = () => new Error(
+  "Falta configurar Supabase: completa supabaseUrl y supabaseKey en CONFIG, al inicio del script de index.html.");
 
 async function rpc(fn, args) {
-  const headers = { "Content-Type": "application/json" };
-  if (CONFIG.supabaseKey) {
-    headers.apikey = CONFIG.supabaseKey;
-    if (CONFIG.supabaseKey.startsWith("eyJ")) headers.Authorization = "Bearer " + CONFIG.supabaseKey;
-  }
-  const sinConfigurar = new Error(
-    "Falta configurar Supabase: completa supabaseUrl y supabaseKey en CONFIG, al inicio del script de index.html.");
-  if (!CONFIG.supabaseUrl && location.protocol === "file:") throw sinConfigurar;
+  if (!CONFIG.supabaseUrl && location.protocol === "file:") throw sinConfigurar();
   let res;
   try {
     res = await fetch(`${CONFIG.supabaseUrl}/rest/v1/rpc/${fn}`, {
-      method: "POST", headers, body: JSON.stringify(args),
+      method: "POST", headers: cabeceras(), body: JSON.stringify(args),
     });
   } catch (e) {
     throw new Error("No hay conexión con el servicio. Revisa supabaseUrl en CONFIG y tu internet.");
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    if (!data && !CONFIG.supabaseUrl) throw sinConfigurar;
+    if (!data && !CONFIG.supabaseUrl) throw sinConfigurar();
     if (data && /could not find the function/i.test(data.message || "")) {
       throw new Error("Las funciones no existen en Supabase: ejecuta supabase-base-gravable.sql en el SQL Editor.");
     }
@@ -256,19 +348,18 @@ async function rpc(fn, args) {
 
 function mostrarError(msg) { const e = $("error"); e.textContent = msg; e.hidden = !msg; }
 function soloDigitos(s) { return (s || "").replace(/\D/g, ""); }
-function formatearMonto(input) {
-  const d = soloDigitos(input.value);
-  input.value = d ? "$ " + Number(d).toLocaleString("es-CO") : "";
-}
+function monto(id) { return Number(soloDigitos($(id).value)) || 0; }
+function ponerMonto(id, n) { $(id).value = n ? "$ " + Number(n).toLocaleString("es-CO") : ""; }
+function formatearMonto(input) { ponerMonto(input.id, soloDigitos(input.value)); }
+function esNuevo() { return document.querySelector('input[name="estado"]:checked').value === "nuevo"; }
 function actualizarBoton() {
-  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
-  const ok = $("linea").value && (nuevo ? soloDigitos($("factura").value) : $("anio").value);
+  const ok = $("linea").value && (esNuevo() ? soloDigitos($("factura").value) : $("anio").value);
   $("calcular").disabled = !ok;
 }
 
 function llenar(select, opciones, placeholder) {
   select.innerHTML = "";
-  const ph = new Option(placeholder, ""); select.add(ph);
+  select.add(new Option(placeholder, ""));
   for (const [valor, texto] of opciones) select.add(new Option(texto, valor));
   select.disabled = opciones.length === 0;
 }
@@ -301,15 +392,13 @@ async function cargarLineas() {
   } catch (e) { mostrarError(e.message); }
 }
 
-function etiquetaLinea(l) {
-  return l.cilindraje ? `${l.linea} · ${l.cilindraje}` : l.linea;
-}
+const etiquetaLinea = (l) => (l.cilindraje ? `${l.linea} · ${l.cilindraje}` : l.linea);
+
 function pintarLineas() {
   const q = $("filtro").value.trim().toLowerCase();
   const previa = $("linea").value;
   const visibles = lineas.filter((l) => !q || etiquetaLinea(l).toLowerCase().includes(q));
-  llenar($("linea"), visibles.map((l) => [l.id, etiquetaLinea(l)]),
-    visibles.length ? "Elige la línea" : "Sin resultados");
+  llenar($("linea"), visibles.map((l) => [l.id, etiquetaLinea(l)]), visibles.length ? "Elige la línea" : "Sin resultados");
   if (previa && visibles.some((l) => String(l.id) === previa)) $("linea").value = previa;
   $("lineas-hint").textContent = q ? `${visibles.length} de ${lineas.length} líneas` : `${lineas.length} líneas`;
   cargarAnios();
@@ -324,20 +413,166 @@ function cargarAnios() {
 }
 
 function alternarEstado() {
-  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
-  $("f-anio").hidden = nuevo; $("f-factura").hidden = !nuevo;
+  $("f-anio").hidden = esNuevo(); $("f-factura").hidden = !esNuevo();
   actualizarBoton();
 }
+
+/* ---------- Lectura de la tarjeta ---------- */
+
+async function prepararImagen(archivo) {
+  let bmp;
+  try { bmp = await createImageBitmap(archivo); } // respeta la orientación EXIF
+  catch (e) { throw new Error("No se pudo abrir la imagen. Usa una foto JPG o PNG."); }
+  const esc = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * esc); c.height = Math.round(bmp.height * esc);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85));
+  const dataUrl = await new Promise((r) => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(blob); });
+  return dataUrl.split(",")[1];
+}
+
+async function leerTarjeta(base64) {
+  const h = cabeceras();
+  h["x-acceso"] = $("acceso").value.trim();
+  let res;
+  try {
+    res = await fetch(`${CONFIG.supabaseUrl}/functions/v1/leer-tarjeta`, {
+      method: "POST", headers: h, body: JSON.stringify({ imagen: base64, tipo: "image/jpeg" }),
+    });
+  } catch (e) { throw new Error("No hay conexión con el servicio de lectura. Revisa tu internet."); }
+  const data = await res.json().catch(() => null);
+  if (res.status === 404) throw new Error("La función leer-tarjeta no está publicada en Supabase (ver el README).");
+  if (!res.ok) throw new Error((data && data.error) || "No se pudo leer la tarjeta.");
+  return data.datos;
+}
+
+async function alElegirFoto(ev) {
+  const archivo = ev.target.files[0];
+  if (!archivo) return;
+  mostrarError(""); $("foto-aviso").hidden = true; $("foto-estado").hidden = true;
+  if (!$("acceso").value.trim()) { mostrarError("Escribe el código de acceso antes de subir la foto."); ev.target.value = ""; return; }
+  guardar("ac.acceso", $("acceso").value.trim());
+  const estado = $("foto-estado");
+  estado.hidden = false; estado.textContent = "Leyendo la tarjeta…";
+  try {
+    const datos = await leerTarjeta(await prepararImagen(archivo));
+    await aplicarTarjeta(datos);
+  } catch (e) { estado.hidden = true; mostrarError(e.message); }
+  finally { ev.target.value = ""; }
+}
+
+/* Busca la línea en la tabla preferida y, si no hay un parecido claro, en las demás. */
+async function buscarCoincidencias(d, preferida) {
+  const orden = [preferida, ...TIPOS.map((t) => t.tabla).filter((t) => t !== preferida)];
+  let mejor = null;
+  for (const tabla of orden) {
+    const marcas = await rpc("avaluo_marcas", { p_vigencia: CONFIG.vigencia, p_tabla: tabla });
+    const marca = Tarjeta.elegirMarca(marcas, d.marca);
+    if (!marca) continue;
+    const ls = await rpc("avaluo_lineas", { p_vigencia: CONFIG.vigencia, p_tabla: tabla, p_marca: marca });
+    const ranking = Tarjeta.rankearLineas(ls, d, 4);
+    if (!ranking.length) continue;
+    if (!mejor || ranking[0].puntaje > mejor.ranking[0].puntaje) mejor = { tabla, marca, ranking };
+    if (mejor.ranking[0].nombre >= 0.5) break;   // parecido suficiente: no hace falta seguir
+  }
+  return mejor;
+}
+
+async function aplicarTarjeta(d) {
+  if (!d || d.es_tarjeta === false) {
+    throw new Error("La imagen no parece una licencia de tránsito. Toma otra foto del lado con los datos del vehículo.");
+  }
+  d.cilindraje_cc = Tarjeta.cilindrajeANumero(d.cilindraje_cc);
+  const t = Tarjeta.decidirTabla(d);
+  if (t.bloqueo) throw new Error(t.bloqueo);
+
+  const mejor = await buscarCoincidencias(d, t.tabla);
+  tarjeta = d;
+  $("placa").value = (d.placa || "").toUpperCase();
+  const partes = [d.placa, [d.marca, d.linea].filter(Boolean).join(" "), d.modelo, d.cilindraje_cc ? d.cilindraje_cc + " cc" : null]
+    .filter(Boolean);
+  $("foto-estado").hidden = false;
+  $("foto-estado").textContent = "Leído: " + partes.join(" · ") + ". Revisa que sea correcto.";
+
+  const avisos = [];
+  if (d.dudas && d.dudas.length) avisos.push("Datos dudosos en la foto: " + d.dudas.join("; ") + ".");
+  if (!mejor) {
+    avisos.push(`No encontré la marca ${d.marca || ""} en las tablas del Ministerio. Elige el vehículo manualmente.`);
+    $("foto-aviso").textContent = avisos.join(" "); $("foto-aviso").hidden = false;
+    ocultarCandidatas();
+    $("tabla").value = String(t.tabla);
+    await cargarMarcas();   // deja la selección vacía para no cotizar el vehículo de la lectura anterior
+    return;
+  }
+
+  $("tabla").value = String(mejor.tabla);
+  await cargarMarcas();
+  $("marca").value = mejor.marca;
+  await cargarLineas();
+  await mostrarCandidatas(mejor.ranking, d);
+  if (mejor.ranking[0].nombre < 0.5) avisos.push("No hay una coincidencia clara con la línea de la tarjeta: elige la opción correcta o busca la línea a mano.");
+  if (mejor.tabla !== t.tabla) avisos.push("La línea se encontró en otra tabla del Ministerio que la esperada por la clase del vehículo.");
+  const l0 = mejor.ranking[0].linea;
+  const { aviso } = Tarjeta.anioParaTabla(l0.anios, d.modelo);
+  if (aviso) avisos.push(aviso);
+  $("foto-aviso").textContent = avisos.join(" "); $("foto-aviso").hidden = !avisos.length;
+}
+
+async function mostrarCandidatas(ranking, d) {
+  const lista = $("cand-lista"); lista.innerHTML = "";
+  const filas = await Promise.all(ranking.map(async (r) => {
+    const { anio } = Tarjeta.anioParaTabla(r.linea.anios, d.modelo);
+    let base = null;
+    try { base = (await rpc("calcular_impuesto_vehicular", { p_vehiculo_id: Number(r.linea.id), p_anio_modelo: anio }))[0].base_gravable; }
+    catch (e) { /* sin avalúo para ese año: se muestra sin valor */ }
+    return { r, base };
+  }));
+  opcionesVistas = filas;
+  filas.forEach(({ r, base }, i) => {
+    const et = document.createElement("label"); et.className = "cand";
+    const radio = document.createElement("input"); radio.type = "radio"; radio.name = "cand"; radio.value = r.linea.id;
+    radio.checked = i === 0;
+    radio.addEventListener("change", () => elegirCandidata(r.linea.id));
+    const n = document.createElement("span"); n.className = "n"; n.textContent = etiquetaLinea(r.linea);
+    const v = document.createElement("span"); v.className = "v"; v.textContent = base ? COP.format(base) : "sin avalúo";
+    et.append(radio, n, v); lista.append(et);
+  });
+  const bases = filas.map((f) => f.base).filter(Boolean);
+  const varia = bases.length > 1 && Math.max(...bases) / Math.min(...bases) > 1.05;
+  $("cand-hint").textContent = (varia
+    ? "Estas opciones tienen avalúos distintos: elige la que corresponde a la versión exacta del vehículo. "
+    : "") + `Avalúo para el modelo ${d.modelo || ""}, según el Ministerio.`;
+  $("candidatas").hidden = false;
+  elegirCandidata(ranking[0].linea.id);
+}
+
+function elegirCandidata(id) {
+  $("filtro").value = ""; pintarLineas();
+  $("linea").value = String(id);
+  cargarAnios();
+  const l = lineas.find((x) => String(x.id) === String(id));
+  if (l && tarjeta) {
+    const { anio } = Tarjeta.anioParaTabla(l.anios, tarjeta.modelo);
+    if (anio) $("anio").value = String(anio);
+  }
+  actualizarBoton();
+}
+
+function ocultarCandidatas() { $("candidatas").hidden = true; $("cand-lista").innerHTML = ""; opcionesVistas = []; }
+
+/* ---------- Cálculo y cotización ---------- */
 
 async function calcular(ev) {
   ev.preventDefault();
   mostrarError("");
-  const nuevo = document.querySelector('input[name="estado"]:checked').value === "nuevo";
+  const nuevo = esNuevo();
   const l = lineas.find((x) => String(x.id) === $("linea").value);
   if (!l) return;
-  const anioMax = Math.max(...l.anios);
-  const factura = nuevo ? Number(soloDigitos($("factura").value)) : null;
-  const anio = nuevo ? anioMax : Number($("anio").value);
+  const precio = monto("precio"), descuento = monto("descuento");
+  if (descuento > precio && precio) { mostrarError("El descuento no puede ser mayor que el valor del vehículo."); return; }
+  const factura = nuevo ? monto("factura") : null;
+  const anio = nuevo ? Math.max(...l.anios) : Number($("anio").value);
   const factor = Number($("regimen").value);
 
   $("calcular").disabled = true; $("calcular").textContent = "Calculando…";
@@ -345,18 +580,26 @@ async function calcular(ev) {
     const filas = await rpc("calcular_impuesto_vehicular", {
       p_vehiculo_id: Number(l.id), p_anio_modelo: anio, p_valor_factura: factura, p_factor: factor,
     });
-    const r = filas[0];
-    ultimo = { r, l, nuevo, anio, factor, factura };
+    ultimo = { r: filas[0], l, nuevo, anio, factor };
     pintarCotizacion();
   } catch (e) { mostrarError(e.message); }
   finally { $("calcular").textContent = "Calcular cotización"; actualizarBoton(); }
+}
+
+function fila(dl, etiqueta, valor, fuerte) {
+  const f = document.createElement("div"); f.className = "line" + (fuerte ? " fuerte" : "");
+  const dt = document.createElement("dt"); dt.textContent = etiqueta;
+  const dd = document.createElement("dd"); dd.textContent = valor;
+  f.append(dt, dd); dl.append(f);
 }
 
 function pintarCotizacion() {
   const { r, l, nuevo, anio, factor } = ultimo;
   const ahora = new Date();
   const pad = (n) => String(n).padStart(2, "0");
-  $("q-vehiculo").textContent = `${$("marca").value} ${l.linea}`;
+  const placa = $("placa").value.trim().toUpperCase();
+  const nombre = tarjeta && (tarjeta.marca || tarjeta.linea) ? [tarjeta.marca, tarjeta.linea].filter(Boolean).join(" ") : `${$("marca").value} ${l.linea}`;
+  $("q-vehiculo").textContent = placa ? `${nombre} · ${placa}` : nombre;
   $("q-detalle").textContent = [
     l.cilindraje ? "Cilindraje " + l.cilindraje : null,
     nuevo ? "Nuevo" : (anio === 2001 ? "Modelo 2001 o anterior" : "Modelo " + anio),
@@ -364,49 +607,94 @@ function pintarCotizacion() {
   $("q-numero").textContent =
     `COT-${ahora.getFullYear()}${pad(ahora.getMonth() + 1)}${pad(ahora.getDate())}-${pad(ahora.getHours())}${pad(ahora.getMinutes())}\n` +
     ahora.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
-  $("q-numero").style.whiteSpace = "pre-line";
 
+  const dl = $("q-filas"); dl.innerHTML = "";
   const cliente = $("cliente").value.trim();
-  $("q-cliente-l").hidden = !cliente; $("q-cliente").textContent = cliente;
-  const precio = Number(soloDigitos($("precio").value));
-  $("q-precio-l").hidden = !precio; $("q-precio").textContent = precio ? COP.format(precio) : "";
+  if (cliente) fila(dl, "Cliente", cliente);
 
-  $("q-base-t").textContent = nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)";
-  $("q-base").textContent = COP.format(r.base_gravable);
-  $("q-tarifa").textContent = (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %";
-  $("q-impuesto").textContent = COP.format(r.impuesto);
-
+  const precio = monto("precio"), descuento = monto("descuento");
+  const soat = monto("soat"), traspaso = monto("traspaso"), tramitador = monto("tramitador");
+  const prenda = $("usaPrenda").checked ? monto("prenda") : 0;
   const nota = [`Valor estimado para la vigencia ${CONFIG.vigencia}, a título informativo.`];
+
+  if (precio) {
+    const conDescuento = precio - descuento;
+    const papeles = r.impuesto + soat + traspaso + tramitador + prenda;
+    fila(dl, "Valor del vehículo", COP.format(precio));
+    if (descuento) fila(dl, "Descuento", COP.format(-descuento));
+    fila(dl, "Valor con descuento", COP.format(conDescuento), true);
+    fila(dl, "Impuesto departamento", COP.format(r.impuesto));
+    if (soat) fila(dl, "SOAT", COP.format(soat));
+    if (traspaso) fila(dl, "Traspaso", COP.format(traspaso));
+    if (tramitador) fila(dl, "Tramitador", COP.format(tramitador));
+    if (prenda) fila(dl, "Prenda", COP.format(prenda));
+    fila(dl, "Total papeles", COP.format(papeles), true);
+    $("q-total-t").textContent = "Valor final";
+    $("q-total").textContent = COP.format(conDescuento + papeles);
+  } else {
+    fila(dl, nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)", COP.format(r.base_gravable));
+    fila(dl, "Tarifa", (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %");
+    $("q-total-t").textContent = "Impuesto vehicular anual estimado";
+    $("q-total").textContent = COP.format(r.impuesto);
+  }
+
+  if (precio) {
+    nota.push(`El impuesto es el anual estimado: base gravable ${COP.format(r.base_gravable)} por una tarifa del ${(r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 })} %.`);
+  }
+  if (!nuevo) nota.push(`Avalúo tomado de la línea ${etiquetaLinea(l)} del Ministerio de Transporte.`);
   if (factor !== 1) nota.push(`Se aplicó ${factor * 100} % sobre el avalúo por el tipo de registro.`);
-  nota.push("La liquidación oficial la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta cotización no considera.");
+  nota.push("La liquidación oficial la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta cotización no considera. El SOAT, el traspaso, el tramitador y la prenda son los valores digitados por el concesionario.");
   nota.push("Fuente: " + CONFIG.fuente + ".");
   $("q-nota").textContent = nota.join(" ");
 
   $("vacio").hidden = true; $("cotizacion").hidden = false;
-  if (window.matchMedia("(max-width: 819px)").matches) $("cotizacion").scrollIntoView({ behavior: "smooth", block: "start" });
+  if (window.matchMedia("(max-width: 859px)").matches) $("cotizacion").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function cargarTramites() {
+  let guardados = {};
+  try { guardados = JSON.parse(leer("ac.tramites") || "{}"); } catch (e) { guardados = {}; }
+  const v = { ...CONFIG.tramites, ...guardados };
+  for (const k of ["traspaso", "tramitador", "prenda"]) ponerMonto(k, v[k]);
+}
+function guardarTramites() {
+  guardar("ac.tramites", JSON.stringify({ traspaso: monto("traspaso"), tramitador: monto("tramitador"), prenda: monto("prenda") }));
 }
 
 function nueva() {
-  ultimo = null;
+  ultimo = null; tarjeta = null;
   $("cotizacion").hidden = true; $("vacio").hidden = false;
-  $("form").reset(); alternarEstado();
+  $("foto-estado").hidden = true; $("foto-aviso").hidden = true;
+  ocultarCandidatas();
+  $("form").reset(); alternarEstado(); cargarTramites();
   cargarMarcas();
+  window.scrollTo({ top: 0, behavior: "smooth" });
   $("tabla").focus();
 }
 
 $("dealer").textContent = CONFIG.concesionario;
+$("acceso").value = leer("ac.acceso") || "";
 llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
 $("tabla").remove(0); $("tabla").disabled = false;
-$("tabla").addEventListener("change", cargarMarcas);
-$("marca").addEventListener("change", cargarLineas);
+// Si cambian el tipo o la marca a mano, ya no es el vehículo de la tarjeta.
+$("tabla").addEventListener("change", () => { tarjeta = null; ocultarCandidatas(); cargarMarcas(); });
+$("marca").addEventListener("change", () => { tarjeta = null; ocultarCandidatas(); cargarLineas(); });
 $("filtro").addEventListener("input", pintarLineas);
-$("linea").addEventListener("change", cargarAnios);
+$("linea").addEventListener("change", () => {
+  const marcada = [...document.querySelectorAll('input[name="cand"]')].find((r) => r.value === $("linea").value);
+  document.querySelectorAll('input[name="cand"]').forEach((r) => { r.checked = r === marcada; });
+  cargarAnios();
+});
 $("anio").addEventListener("change", actualizarBoton);
 document.querySelectorAll('input[name="estado"]').forEach((r) => r.addEventListener("change", alternarEstado));
-for (const id of ["factura", "precio"]) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
+for (const id of MONTOS) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
+for (const id of ["traspaso", "tramitador", "prenda"]) $(id).addEventListener("change", guardarTramites);
+$("usaPrenda").addEventListener("change", () => { if ($("usaPrenda").checked && !monto("prenda")) ponerMonto("prenda", CONFIG.tramites.prenda); });
+$("foto").addEventListener("change", alElegirFoto);
 $("form").addEventListener("submit", calcular);
 $("imprimir").addEventListener("click", () => window.print());
 $("nueva").addEventListener("click", nueva);
+cargarTramites();
 cargarMarcas();
 </script>
 </body>
