@@ -210,6 +210,12 @@
           </select>
         </div>
 
+        <div class="field">
+          <label for="mes">Mes desde el cual se cobra el impuesto</label>
+          <select id="mes"></select>
+          <div class="hint" id="mes-hint"></div>
+        </div>
+
         <fieldset>
           <legend>Valores de la cotización</legend>
           <div class="field">
@@ -561,6 +567,31 @@ function elegirCandidata(id) {
 
 function ocultarCandidatas() { $("candidatas").hidden = true; $("cand-lista").innerHTML = ""; opcionesVistas = []; }
 
+/* ---------- Mes del impuesto ---------- */
+
+const nombreMes = (m) => new Date(CONFIG.vigencia, m - 1, 1).toLocaleDateString("es-CO", { month: "long" });
+
+/* "" = año completo (12 meses). Si no, cuenta el mes elegido y los siguientes hasta diciembre. */
+function mesesDelCobro(mes) { return mes ? 13 - Number(mes) : 12; }
+
+function llenarMeses() {
+  const sel = $("mes");
+  sel.innerHTML = "";
+  sel.add(new Option("Año completo (12 meses)", ""));
+  for (let m = 1; m <= 12; m++) {
+    const n = mesesDelCobro(m);
+    sel.add(new Option(`Desde ${nombreMes(m)} (${n} ${n === 1 ? "mes" : "meses"})`, String(m)));
+  }
+  actualizarHintMes();
+}
+
+function actualizarHintMes() {
+  const n = mesesDelCobro($("mes").value);
+  $("mes-hint").textContent = n === 12
+    ? "Se cobra el impuesto del año completo."
+    : `Se cobra ${n}/12 del impuesto anual, contando ${$("mes").value === "12" ? "diciembre" : nombreMes($("mes").value) + " y los meses siguientes hasta diciembre"}.`;
+}
+
 /* ---------- Cálculo y cotización ---------- */
 
 async function calcular(ev) {
@@ -580,7 +611,7 @@ async function calcular(ev) {
     const filas = await rpc("calcular_impuesto_vehicular", {
       p_vehiculo_id: Number(l.id), p_anio_modelo: anio, p_valor_factura: factura, p_factor: factor,
     });
-    ultimo = { r: filas[0], l, nuevo, anio, factor };
+    ultimo = { r: filas[0], l, nuevo, anio, factor, mes: $("mes").value };
     pintarCotizacion();
   } catch (e) { mostrarError(e.message); }
   finally { $("calcular").textContent = "Calcular cotización"; actualizarBoton(); }
@@ -594,7 +625,11 @@ function fila(dl, etiqueta, valor, fuerte) {
 }
 
 function pintarCotizacion() {
-  const { r, l, nuevo, anio, factor } = ultimo;
+  const { r, l, nuevo, anio, factor, mes } = ultimo;
+  const meses = mesesDelCobro(mes);
+  const parcial = meses !== 12;
+  const impuesto = parcial ? Math.round(r.impuesto * meses / 12) : r.impuesto;
+  const rango = mes === "12" ? "diciembre" : `${nombreMes(mes)} a diciembre`;
   const ahora = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const placa = $("placa").value.trim().toUpperCase();
@@ -619,11 +654,11 @@ function pintarCotizacion() {
 
   if (precio) {
     const conDescuento = precio - descuento;
-    const papeles = r.impuesto + soat + traspaso + tramitador + prenda;
+    const papeles = impuesto + soat + traspaso + tramitador + prenda;
     fila(dl, "Valor del vehículo", COP.format(precio));
     if (descuento) fila(dl, "Descuento", COP.format(-descuento));
     fila(dl, "Valor con descuento", COP.format(conDescuento), true);
-    fila(dl, "Impuesto departamento", COP.format(r.impuesto));
+    fila(dl, parcial ? `Impuesto departamento (${rango}: ${meses}/12)` : "Impuesto departamento", COP.format(impuesto));
     if (soat) fila(dl, "SOAT", COP.format(soat));
     if (traspaso) fila(dl, "Traspaso", COP.format(traspaso));
     if (tramitador) fila(dl, "Tramitador", COP.format(tramitador));
@@ -634,12 +669,18 @@ function pintarCotizacion() {
   } else {
     fila(dl, nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)", COP.format(r.base_gravable));
     fila(dl, "Tarifa", (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %");
-    $("q-total-t").textContent = "Impuesto vehicular anual estimado";
-    $("q-total").textContent = COP.format(r.impuesto);
+    if (parcial) fila(dl, "Impuesto anual", COP.format(r.impuesto));
+    $("q-total-t").textContent = parcial
+      ? `Impuesto estimado (${rango}: ${meses} de 12 meses)` : "Impuesto vehicular anual estimado";
+    $("q-total").textContent = COP.format(impuesto);
   }
 
+  const tarifaTxt = (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 });
   if (precio) {
-    nota.push(`El impuesto es el anual estimado: base gravable ${COP.format(r.base_gravable)} por una tarifa del ${(r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 })} %.`);
+    nota.push(`Impuesto anual estimado: base gravable ${COP.format(r.base_gravable)} por una tarifa del ${tarifaTxt} %, es decir ${COP.format(r.impuesto)}.`);
+  }
+  if (parcial) {
+    nota.push(`Se cobra proporcional a ${meses} de 12 meses (${rango}): ${COP.format(r.impuesto)} × ${meses} / 12 = ${COP.format(impuesto)}. En general la gobernación liquida el año completo; el cobro por meses es el valor que acuerdan las partes.`);
   }
   if (!nuevo) nota.push(`Avalúo tomado de la línea ${etiquetaLinea(l)} del Ministerio de Transporte.`);
   if (factor !== 1) nota.push(`Se aplicó ${factor * 100} % sobre el avalúo por el tipo de registro.`);
@@ -666,7 +707,7 @@ function nueva() {
   $("cotizacion").hidden = true; $("vacio").hidden = false;
   $("foto-estado").hidden = true; $("foto-aviso").hidden = true;
   ocultarCandidatas();
-  $("form").reset(); alternarEstado(); cargarTramites();
+  $("form").reset(); alternarEstado(); cargarTramites(); actualizarHintMes();
   cargarMarcas();
   window.scrollTo({ top: 0, behavior: "smooth" });
   $("tabla").focus();
@@ -686,6 +727,7 @@ $("linea").addEventListener("change", () => {
   cargarAnios();
 });
 $("anio").addEventListener("change", actualizarBoton);
+$("mes").addEventListener("change", actualizarHintMes);
 document.querySelectorAll('input[name="estado"]').forEach((r) => r.addEventListener("change", alternarEstado));
 for (const id of MONTOS) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
 for (const id of ["traspaso", "tramitador", "prenda"]) $(id).addEventListener("change", guardarTramites);
@@ -694,6 +736,7 @@ $("foto").addEventListener("change", alElegirFoto);
 $("form").addEventListener("submit", calcular);
 $("imprimir").addEventListener("click", () => window.print());
 $("nueva").addEventListener("click", nueva);
+llenarMeses();
 cargarTramites();
 cargarMarcas();
 </script>
