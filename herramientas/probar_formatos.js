@@ -24,6 +24,9 @@ async function plantillaMinima() {
   assert.strictEqual(celdas.C15, "ABC123"); assert.strictEqual(celdas.C13, "ABC"); assert.strictEqual(celdas.C14, "123");
   assert.strictEqual(celdas.C20, "LUIS FERNANDO GÓMEZ RUÍZ"); assert.strictEqual(celdas.C25, "LUIS FERNANDO");
   assert.strictEqual(celdas.C26, "1234567"); assert.strictEqual(celdas.C31, ""); assert.strictEqual(celdas.C5, "2020");
+  assert.ok(!("C42" in celdas) && !("C43" in celdas) && !("C44" in celdas), "empresa vacía: se conserva la de la plantilla");
+  const conEmpresa = F.valoresPorCelda({ ...v, e_nombre: "mi empresa", e_nit: "900.123.456-7" });
+  assert.strictEqual(conEmpresa.C42, "MI EMPRESA"); assert.strictEqual(conEmpresa.C44, "900.123.456-7"); assert.ok(!("C43" in conEmpresa));
   console.log("OK   valores: mayúsculas, placa partida, nombres y números solo con dígitos");
 
   const { bytes, faltantes, refrescadas } = await F.llenarPlantilla(JSZip, await plantillaMinima(), celdas);

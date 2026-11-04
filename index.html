@@ -271,7 +271,11 @@
   @media (min-width: 560px) { .campos { grid-template-columns: 1fr 1fr; } }
   @media (min-width: 860px) { .campos { grid-template-columns: 1fr 1fr 1fr; } }
   input.dudoso { border-color: #f0a91c; box-shadow: inset 0 0 0 1px #f0a91c; }
-  .progreso { margin: 4px 0 16px; }
+  .gen { display: grid; gap: 14px; align-items: center; margin-bottom: 4px; }
+  @media (min-width: 640px) { .gen { grid-template-columns: 1fr auto; gap: 24px; } }
+  .gen .consejos { justify-content: flex-start; margin: 8px 0 6px; }
+  .gen button { min-width: 240px; min-height: 54px; font-size: 15.5px; }
+  .progreso { margin: 14px 0 16px; }
   .progreso .barra-p { height: 8px; border-radius: 8px; background: var(--campo); border: 1px solid var(--line); overflow: hidden; }
   .progreso .barra-p i { display: block; height: 100%; width: 0; background: var(--degradado); border-radius: 8px; transition: width .3s; }
   .progreso .txt { font-size: 12.5px; color: var(--muted); margin-top: 6px; font-weight: 500; }
@@ -306,16 +310,12 @@
   .barra-total button { margin-left: auto; min-height: 42px; }
   @media (min-width: 860px) { .barra-total { display: none !important; } }
 
-  .toast {
-    position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--bg);
-    padding: 10px 18px; border-radius: 999px; font-size: 13.5px; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
-  }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
   @media print {
     :root { --bg:#fff; --card:#fff; --ink:#000; --muted:#444; --line:#ccc; --line-fuerte:#bbb; --total-fondo:#f0f0f0; }
     body { background: #fff !important; color: #000; }
-    .no-print, .hero .lead, .pasos, .resumen, .col-form, .pasos-nav, .barra-total, .toast, .titulo-paso, .intro, .marca-acciones .btn-nueva { display: none !important; }
+    .no-print, .hero .lead, .pasos, .resumen, .col-form, .pasos-nav, .barra-total, .titulo-paso, .intro, .marca-acciones .btn-nueva { display: none !important; }
     .grid { display: block; margin-top: 0; }
     .card { border: 0; padding: 0; box-shadow: none; background: #fff; backdrop-filter: none; }
     .card::before { display: none; }
@@ -543,9 +543,7 @@
               </div>
               <p class="note" id="q-nota"></p>
               <div class="actions no-print">
-                <button type="button" id="whatsapp" class="primary">Enviar por WhatsApp</button>
-                <button type="button" id="copiar">Copiar resumen</button>
-                <button type="button" id="imprimir">Imprimir / PDF</button>
+                <button type="button" id="pdf" class="primary">Descargar cotización en PDF</button>
               </div>
             </div>
           </section>
@@ -562,18 +560,17 @@
   <!-- ============ PASO 3: FORMATOS ============ -->
   <section id="paso-3" class="panel no-print" hidden aria-labelledby="h-paso3">
     <h2 class="titulo-paso" id="h-paso3" tabindex="-1">Formatos de compra</h2>
-    <p class="intro">Llena la hoja “Datos Basicos” de tu plantilla de Excel y todos los formatos (traspaso, compraventa, mandatos y consignaciones) se actualizan solos. Lo leído de la tarjeta ya está escrito; completa el resto. Los campos con borde ámbar vienen del OCR: verifícalos con la tarjeta antes de imprimir.</p>
+    <p class="intro">Revisa los datos y pulsa “Generar documentos”: se descarga un Excel con todos los formatos de compra ya llenos. Lo leído de la tarjeta ya está escrito; completa el resto. Los campos con borde ámbar vienen del OCR: verifícalos con la tarjeta antes de imprimir.</p>
     <div class="card" id="c-formatos">
-      <div class="row two">
-        <div class="field">
-          <span class="label">1 · Tu plantilla de Excel</span>
-          <label class="filebtn alt" for="plantilla">Elegir “Documentos Compra De Vehiculos.xlsx”<input id="plantilla" type="file" accept=".xlsx"></label>
-          <div class="hint" id="plantilla-estado"></div>
+      <div class="gen">
+        <div>
+          <span class="label">7 formatos en un solo archivo de Excel</span>
+          <div class="consejos">
+            <span class="chip">FunVed-Comp</span><span class="chip">COMPRA VENTA</span><span class="chip">Mandato vendedor</span><span class="chip">Mandato jurídico</span><span class="chip">Doble dueño</span><span class="chip">Consignación V</span><span class="chip">Consignación VYC</span>
+          </div>
+          <div class="hint">Ya vienen integrados: no hace falta subir ningún archivo.</div>
         </div>
-        <div class="field">
-          <span class="label">2 · Descarga el archivo lleno</span>
-          <button class="primary" type="button" id="descargar" style="width:100%">Descargar Excel lleno</button>
-        </div>
+        <button class="primary" type="button" id="descargar">Generar documentos</button>
       </div>
       <div class="msg aviso" id="formato-aviso" hidden></div>
       <div class="msg ok" id="formato-ok" hidden></div>
@@ -593,7 +590,6 @@
   <div><small>Valor final</small><strong id="bt-valor"></strong></div>
   <button type="button" class="primary" id="bt-ver">Ver detalle</button>
 </div>
-<div class="toast" id="toast" role="status" hidden></div>
 
 <script src="tarjeta.js"></script>
 <script src="formatos.js"></script>
@@ -666,10 +662,6 @@ async function rpc(fn, args) {
 function mostrarError(msg) {
   const e = $("error"); e.textContent = msg; e.hidden = !msg;
   if (msg) e.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-function aviso(msg) {
-  const t = $("toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(aviso.t); aviso.t = setTimeout(() => { t.hidden = true; }, 2600);
 }
 function soloDigitos(s) { return (s || "").replace(/\D/g, ""); }
 function monto(id) { return Number(soloDigitos($(id).value)) || 0; }
@@ -1024,8 +1016,9 @@ const GRUPOS = [
   { id: "vehiculo", titulo: "Datos del vehículo", abierto: true },
   { id: "propietario", titulo: "Datos del propietario (vendedor)", abierto: true },
   { id: "comprador", titulo: "Datos del comprador", abierto: true },
+  { id: "empresa", titulo: "Datos de la empresa (mandato jurídico)", abierto: false },
 ];
-const OPCIONALES = new Set(["potencia", "p_nombre2", "c_nombre2"]);
+const OPCIONALES = new Set(["potencia", "p_nombre2", "c_nombre2", "e_nombre", "e_representante", "e_nit"]);
 const JSZIP_URL = "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js";
 
 function construirCamposFormato() {
@@ -1037,6 +1030,11 @@ function construirCamposFormato() {
     const cuenta = document.createElement("span"); cuenta.className = "cuenta";
     sum.append(tit, cuenta);
     const rejilla = document.createElement("div"); rejilla.className = "campos";
+    if (g.id === "empresa") {
+      const h = document.createElement("p"); h.className = "hint"; h.style.gridColumn = "1 / -1";
+      h.textContent = "Si los dejas vacíos se usan los datos que ya trae la plantilla. Lo que escribas aquí se recuerda en este navegador.";
+      rejilla.append(h);
+    }
     for (const c of Formatos.CAMPOS.filter((x) => x.grupo === g.id)) {
       const f = document.createElement("div"); f.className = "field";
       const l = document.createElement("label"); l.htmlFor = "f-" + c.id;
@@ -1047,6 +1045,7 @@ function construirCamposFormato() {
       i.style.textTransform = "uppercase";
       if (c.tipo === "digitos") i.inputMode = "numeric";
       i.addEventListener("input", () => { i.classList.remove("dudoso"); actualizarProgreso(); });
+      if (g.id === "empresa") i.addEventListener("change", guardarEmpresa);
       f.append(l, i); rejilla.append(f);
     }
     det.append(sum, rejilla); cont.append(det);
@@ -1082,7 +1081,20 @@ function actualizarProgreso() {
 function limpiarCamposFormato() {
   document.querySelectorAll("[data-campo]").forEach((i) => { i.value = ""; i.classList.remove("dudoso"); });
   $("formato-aviso").hidden = true; $("formato-ok").hidden = true;
+  cargarEmpresa();
   actualizarProgreso();
+}
+
+/* Los datos de la empresa no cambian entre operaciones: se recuerdan en el navegador. */
+const CAMPOS_EMPRESA = ["e_nombre", "e_representante", "e_nit"];
+function cargarEmpresa() {
+  let g = {};
+  try { g = JSON.parse(leer("ac.empresa") || "{}"); } catch (e) { g = {}; }
+  for (const id of CAMPOS_EMPRESA) if ($("f-" + id)) $("f-" + id).value = g[id] || "";
+}
+function guardarEmpresa() {
+  const g = {}; for (const id of CAMPOS_EMPRESA) g[id] = $("f-" + id).value.trim();
+  guardar("ac.empresa", JSON.stringify(g));
 }
 
 /* Lo leído de la tarjeta se escribe en los campos; los que el OCR confunde con facilidad quedan marcados. */
@@ -1102,44 +1114,18 @@ function llenarCamposFormato(d) {
   actualizarProgreso();
 }
 
-/* La plantilla se guarda en el navegador (IndexedDB): no sube a ningún servidor ni al repositorio. */
-function abrirBD() {
-  return new Promise((ok, fallo) => {
-    const r = indexedDB.open("ac-liquidador", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("archivos");
-    r.onsuccess = () => ok(r.result);
-    r.onerror = () => fallo(r.error);
-  });
-}
-async function guardarPlantilla(nombre, bytes) {
-  try {
-    const db = await abrirBD();
-    await new Promise((ok, fallo) => { const t = db.transaction("archivos", "readwrite"); t.objectStore("archivos").put({ nombre, bytes }, "plantilla"); t.oncomplete = ok; t.onerror = () => fallo(t.error); });
-    return true;
-  } catch (e) { return false; }
-}
-async function leerPlantilla() {
-  try {
-    const db = await abrirBD();
-    return await new Promise((ok, fallo) => { const q = db.transaction("archivos").objectStore("archivos").get("plantilla"); q.onsuccess = () => ok(q.result || null); q.onerror = () => fallo(q.error); });
-  } catch (e) { return null; }
-}
-let plantillaActual = null;   // { nombre, bytes }
+/* La plantilla de formatos viene integrada con la aplicación (plantillas/documentos-compra.xlsx). */
+const PLANTILLA_URL = "plantillas/documentos-compra.xlsx";
 
-function pintarPlantilla(guardada) {
-  $("plantilla-estado").textContent = plantillaActual
-    ? `Plantilla: ${plantillaActual.nombre}${guardada ? " (se recuerda en este navegador)" : " (solo para esta sesión: el navegador no permite guardarla)"}.`
-    : "Elígela una vez; el navegador la recordará. No se sube a ningún servidor.";
-}
-
-async function alElegirPlantilla(ev) {
-  const f = ev.target.files[0];
-  if (!f) return;
-  if (!/\.xlsx$/i.test(f.name)) { $("formato-aviso").textContent = "La plantilla debe ser un archivo .xlsx."; $("formato-aviso").hidden = false; ev.target.value = ""; return; }
-  const bytes = new Uint8Array(await f.arrayBuffer());
-  plantillaActual = { nombre: f.name, bytes };
-  pintarPlantilla(await guardarPlantilla(f.name, bytes));
-  ev.target.value = "";
+async function cargarPlantilla() {
+  if (location.protocol === "file:") {
+    throw new Error("Abre la página desde un servidor web (no con doble clic en el archivo) para que pueda leer la plantilla integrada.");
+  }
+  let res;
+  try { res = await fetch(PLANTILLA_URL, { cache: "no-cache" }); }
+  catch (e) { throw new Error("No hay conexión para leer la plantilla de formatos. Revisa tu internet."); }
+  if (!res.ok) throw new Error(`No se encontró la plantilla (${PLANTILLA_URL}). Publica la carpeta plantillas/ junto a index.html.`);
+  return new Uint8Array(await res.arrayBuffer());
 }
 
 function cargarJSZip() {
@@ -1152,15 +1138,15 @@ function cargarJSZip() {
   });
 }
 
-async function descargarExcel() {
+async function generarDocumentos() {
   const av = $("formato-aviso"), ok = $("formato-ok");
   av.hidden = true; ok.hidden = true;
-  if (!plantillaActual) { av.textContent = "Primero elige tu plantilla de Excel (Documentos Compra De Vehiculos.xlsx)."; av.hidden = false; return; }
   const btn = $("descargar"); btn.disabled = true; btn.textContent = "Generando…";
   try {
     const valores = {};
     document.querySelectorAll("[data-campo]").forEach((i) => { valores[i.dataset.campo] = i.value; });
-    const { bytes } = await Formatos.llenarPlantilla(await cargarJSZip(), plantillaActual.bytes, Formatos.valoresPorCelda(valores));
+    const [plantilla, JSZip] = await Promise.all([cargarPlantilla(), cargarJSZip()]);
+    const { bytes } = await Formatos.llenarPlantilla(JSZip, plantilla, Formatos.valoresPorCelda(valores));
     const placa = (valores.placa || "vehiculo").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
     const a = document.createElement("a"); a.href = url; a.download = `Documentos Compra ${placa}.xlsx`;
@@ -1171,7 +1157,7 @@ async function descargarExcel() {
     ok.hidden = false;
     descargado = true; actualizarPasos();
   } catch (e) { av.textContent = e.message; av.hidden = false; }
-  finally { btn.disabled = false; btn.textContent = "Descargar Excel lleno"; }
+  finally { btn.disabled = false; btn.textContent = "Generar documentos"; }
 }
 
 /* ---------- Mes del impuesto ---------- */
@@ -1266,8 +1252,8 @@ function pintarCotizacion() {
     ahora.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
 
   const dl = $("q-filas"); dl.innerHTML = "";
-  const filas = [];                           // también sirve para compartir y copiar
-  const add = (e, v, fuerte) => { fila(dl, e, v, fuerte); filas.push([e, v]); };
+  const filas = [];                           // también sirve para el PDF
+  const add = (e, v, fuerte) => { fila(dl, e, v, fuerte); filas.push([e, v, !!fuerte]); };
   const cliente = $("cliente").value.trim();
   if (cliente) add("Cliente", cliente);
 
@@ -1318,32 +1304,113 @@ function pintarCotizacion() {
   actualizarResumen();
 }
 
-/* ---------- Compartir ---------- */
+/* ---------- PDF de la cotización ---------- */
 
-function textoResumen() {
-  if (!ultimo || !ultimo.filas) return "";
-  const dealer = CONFIG.concesionario && !/^Nombre del/i.test(CONFIG.concesionario) ? ` · ${CONFIG.concesionario}` : "";
-  return [
-    `*Cotización${dealer}*`, ultimo.titulo, "",
-    ...ultimo.filas.map(([e, v]) => `${e}: ${v}`), "",
-    `*${ultimo.totalTitulo}: ${COP.format(ultimo.total)}*`, "",
-    "Valores estimados. La liquidación oficial del impuesto la hace la gobernación del lugar de matrícula.",
-  ].join("\n");
+const JSPDF_URL = "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+
+function cargarJsPDF() {
+  if (window.jspdf) return Promise.resolve(window.jspdf);
+  return new Promise((ok, fallo) => {
+    const sc = document.createElement("script");
+    sc.src = JSPDF_URL; sc.onload = () => ok(window.jspdf);
+    sc.onerror = () => fallo(new Error("No se pudo cargar el generador de PDF. Revisa tu internet e intenta de nuevo."));
+    document.head.append(sc);
+  });
 }
 
-function enviarWhatsApp() {
-  const t = textoResumen(); if (!t) return;
-  window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener");
+async function logoComoImagen() {
+  try {
+    const bmp = await createImageBitmap(await (await fetch("assets/ac-simbolo.png")).blob());
+    const c = document.createElement("canvas");              // se reduce: a 28 mm bastan ~420 px
+    c.width = 420; c.height = Math.round(bmp.height * 420 / bmp.width);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return c.toDataURL("image/png");
+  } catch (e) { return null; }
 }
 
-async function copiarResumen() {
-  const t = textoResumen(); if (!t) return;
-  try { await navigator.clipboard.writeText(t); }
-  catch (e) {
-    const a = document.createElement("textarea"); a.value = t; a.style.position = "fixed"; a.style.opacity = "0";
-    document.body.append(a); a.select(); try { document.execCommand("copy"); } finally { a.remove(); }
+// Las fuentes estándar del PDF solo cubren Latin-1: se cambian las comillas y rayas "tipográficas".
+const pdfTexto = (s) => String(s ?? "").replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/[\u2013\u2014\u2212]/g, "-").replace(/[^\u0009\u000A\u0020-\u00FF]/g, "?");
+
+/* Arma el PDF (A4) con lo que se ve en la cotización. Devuelve el documento de jsPDF. */
+async function construirPDF() {
+  const { jsPDF } = await cargarJsPDF();
+  const doc = new jsPDF({ unit: "mm", format: "a4", compress: true });
+  const [W, H, M] = [210, 297, 18], ANCHO = W - 2 * M;
+  const INK = [10, 20, 48], MUTED = [86, 100, 138], AZUL = [31, 95, 224], ROJO = [229, 50, 43], SUAVE = [232, 238, 252], LINEA = [221, 225, 232];
+  const txt = (t, x, y, o) => doc.text(pdfTexto(t), x, y, o);
+  const fuente = (estilo, tam, color) => { doc.setFont("helvetica", estilo); doc.setFontSize(tam); doc.setTextColor(...color); };
+  let y = 16;
+
+  // Encabezado de marca
+  const logo = await logoComoImagen();
+  if (logo) doc.addImage(logo, "PNG", M, y, 28, 12.1, undefined, "FAST");
+  fuente("bold", 12, INK); txt("STUDIO", M + 33, y + 6, { charSpace: 2.2 });
+  fuente("normal", 6.5, MUTED); txt("ANALYSIS & CREATION", M + 33, y + 10.5, { charSpace: 1.3 });
+  const dealer = CONFIG.concesionario && !/^Nombre del/i.test(CONFIG.concesionario) ? CONFIG.concesionario : "";
+  if (dealer) { fuente("bold", 9, INK); txt(dealer.toUpperCase(), W - M, y + 6, { align: "right" }); }
+  y += 19;
+  doc.setFillColor(...AZUL); doc.rect(M, y, 12, 1.2, "F"); doc.setFillColor(...ROJO); doc.rect(M + 12, y, 12, 1.2, "F");
+
+  // Título y número de cotización
+  y += 11;
+  fuente("bold", 20, INK); txt("Cotización", M, y);
+  const [numero, fecha] = $("q-numero").textContent.split("\n");
+  fuente("normal", 8.5, MUTED); txt(numero || "", W - M, y - 5.5, { align: "right" }); txt(fecha || "", W - M, y - 1, { align: "right" });
+
+  // Vehículo
+  y += 9;
+  fuente("bold", 12.5, INK);
+  for (const l of doc.splitTextToSize(pdfTexto($("q-vehiculo").textContent), ANCHO)) { txt(l, M, y); y += 5.6; }
+  fuente("normal", 9.5, MUTED); txt($("q-detalle").textContent, M, y);
+  y += 5; doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.line(M, y, W - M, y);
+
+  // Filas
+  const nuevaPagina = () => { doc.addPage(); y = 20; };
+  for (const [etiqueta, valor, fuerte] of ultimo.filas) {
+    const lineas = doc.splitTextToSize(pdfTexto(etiqueta), ANCHO - 58);
+    const alto = lineas.length * 4.8 + 4.2;
+    if (y + alto > H - 40) nuevaPagina();
+    fuente(fuerte ? "bold" : "normal", 10, fuerte ? INK : MUTED);
+    lineas.forEach((l, i) => txt(l, M, y + 6.2 + i * 4.8));
+    fuente("bold", 10, INK); txt(valor, W - M, y + 6.2, { align: "right" });
+    y += alto + 1.6; doc.setDrawColor(...LINEA); doc.line(M, y, W - M, y);
   }
-  aviso("Resumen copiado");
+
+  // Total
+  y += 7;
+  if (y + 30 > H - 25) nuevaPagina();
+  doc.setFillColor(...SUAVE); doc.setDrawColor(...AZUL); doc.setLineWidth(0.4); doc.roundedRect(M, y, ANCHO, 25, 2.5, 2.5, "FD");
+  doc.setFillColor(...AZUL); doc.rect(M, y + 3, 1.6, 19, "F");
+  fuente("bold", 7.5, MUTED); txt(ultimo.totalTitulo.toUpperCase(), M + 7, y + 9, { charSpace: 0.6 });
+  fuente("bold", 22, INK); txt(COP.format(ultimo.total), M + 7, y + 19.5);
+  y += 33;
+
+  // Notas
+  fuente("normal", 7.3, MUTED);
+  for (const l of doc.splitTextToSize(pdfTexto($("q-nota").textContent), ANCHO)) {
+    if (y > H - 22) { nuevaPagina(); fuente("normal", 7.3, MUTED); }
+    txt(l, M, y); y += 3.5;
+  }
+
+  // Pie de página
+  const paginas = doc.getNumberOfPages();
+  for (let i = 1; i <= paginas; i++) {
+    doc.setPage(i); doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.line(M, H - 15, W - M, H - 15);
+    fuente("normal", 7, MUTED); txt("Cotización generada con AC Studio · Cotizador de vehículos", M, H - 10.5);
+    txt(`Página ${i} de ${paginas}`, W - M, H - 10.5, { align: "right" });
+  }
+  return doc;
+}
+
+async function descargarPDF() {
+  if (!ultimo || !ultimo.filas) return;
+  const btn = $("pdf"); btn.disabled = true; btn.textContent = "Generando PDF…";
+  try {
+    const doc = await construirPDF();
+    const placa = ($("placa").value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    doc.save(`Cotizacion${placa ? " " + placa : ""}.pdf`);
+  } catch (e) { mostrarError(e.message); }
+  finally { btn.disabled = false; btn.textContent = "Descargar cotización en PDF"; }
 }
 
 /* ---------- Reinicio e inicio ---------- */
@@ -1376,6 +1443,7 @@ llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
 $("tabla").remove(0); $("tabla").disabled = false;
 
 construirCamposFormato();   // antes de enlazar eventos que usan sus campos (p. ej. la placa)
+cargarEmpresa();
 
 // Pasos
 document.querySelectorAll(".paso").forEach((b) => b.addEventListener("click", () => irAPaso(Number(b.dataset.paso))));
@@ -1415,9 +1483,7 @@ $("usaPrenda").addEventListener("change", () => {
   programarCalculo();
 });
 $("form").addEventListener("submit", (e) => { e.preventDefault(); programarCalculo(); });
-$("imprimir").addEventListener("click", () => window.print());
-$("whatsapp").addEventListener("click", enviarWhatsApp);
-$("copiar").addEventListener("click", copiarResumen);
+$("pdf").addEventListener("click", descargarPDF);
 $("nueva").addEventListener("click", () => { if (!ultimo && !tarjeta && !$("placa").value || confirm("¿Empezar de nuevo? Se borrarán los datos de esta operación.")) nueva(); });
 
 // Foto: elegir o arrastrar
@@ -1432,10 +1498,8 @@ zona.addEventListener("drop", (e) => {
 });
 
 // Formatos
-$("plantilla").addEventListener("change", alElegirPlantilla);
-$("descargar").addEventListener("click", descargarExcel);
+$("descargar").addEventListener("click", generarDocumentos);
 
-leerPlantilla().then((p) => { plantillaActual = p; pintarPlantilla(true); });
 llenarMeses();
 cargarTramites();
 cargarMarcas();

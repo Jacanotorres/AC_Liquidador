@@ -10,9 +10,9 @@ tablas del Ministerio guardadas en Supabase y las tarifas del decreto de Haciend
    el vehículo a mano. Si la línea no es única, se muestran las opciones del Ministerio con su avalúo
    para elegir la versión exacta.
 2. **Cotización.** Escribe valor, descuento, SOAT y trámites: la cotización se calcula sola mientras
-   escribes. Se puede enviar por WhatsApp, copiar o imprimir/PDF.
-3. **Formatos.** Elige tu plantilla de Excel una vez y descarga el archivo lleno. Se ve cuántos campos
-   faltan por grupo.
+   escribes. Se descarga en PDF.
+3. **Documentos.** Revisa los datos y pulsa "Generar documentos": se descarga el Excel con los 7 formatos
+   ya llenos. Se ve cuántos campos faltan por grupo.
 
 Arriba, un resumen con el vehículo y el valor final queda a la vista en todos los pasos; "Empezar de
 nuevo" borra la operación. En el celular, el valor final queda fijo abajo mientras se arma la cotización.
@@ -24,6 +24,7 @@ nuevo" borra la operación. En el celular, el valor final queda fijo abajo mient
 | `index.html` | La página (un solo archivo, sin librerías). Configurar `CONFIG` al inicio del script. |
 | `supabase-base-gravable.sql` | Tablas, políticas (solo lectura pública) y funciones `avaluo_marcas`, `avaluo_lineas`, `calcular_impuesto_vehicular`. |
 | `datos/avaluo_vehiculos_2026.csv` | 16.090 líneas de vehículo con avalúos por año modelo, en pesos. |
+| `plantillas/documentos-compra.xlsx` | Plantilla integrada de los 7 formatos, sin datos de personas. |
 | `herramientas/extraer_tabla.py` | PDF de un anexo del Ministerio → CSV (requiere `pdfplumber`). |
 | `herramientas/preparar_csv.py` | Une los CSV de las tablas 1 a 9 en el CSV de carga. |
 | `herramientas/servidor_prueba.py` | Servidor local que imita Supabase sobre Postgres, para probar sin credenciales. |
@@ -55,20 +56,20 @@ queda en caché.
 - Traspaso, tramitador y prenda vienen precargados con valores de ejemplo (`CONFIG.tramites`); en
   pantalla se pueden cambiar y el navegador los recuerda. El SOAT se digita por cotización.
 
-## Formatos de compra en Excel (traspaso, compraventa, mandatos y consignaciones)
+## Documentos de compra (traspaso, compraventa, mandatos y consignaciones)
 
-La plantilla `Documentos Compra De Vehiculos.xlsx` ya está armada para esto: todas sus hojas de
-formatos toman los datos de la hoja **Datos Basicos** con fórmulas. La página llena esa hoja y los
-formatos se actualizan solos.
+Los formatos vienen **integrados**: `plantillas/documentos-compra.xlsx` se incluye con la aplicación y el
+botón **Generar documentos** (paso 3) la llena y descarga un Excel con los 7 formatos. No hay que subir
+ningún archivo. Sus hojas de formatos toman todo de la hoja **Datos Basicos** con fórmulas; la página solo
+llena esa hoja.
 
-1. Sube la foto del frente de la tarjeta (y, si quieres, la del reverso, para la ciudad de matrícula).
-   Se llenan marca, línea, modelo, clase, carrocería, cilindraje, motor, VIN, chasis, color, placa,
-   capacidad y los datos del propietario (apellidos, nombres y cédula).
-2. Completa lo que no está en la tarjeta: dirección, teléfono y ciudad del propietario, y los datos
-   del comprador. Los campos con borde ámbar (placa, motor, VIN, chasis, cédula) vienen del OCR y se
-   deben verificar con la tarjeta: el OCR los confunde, sobre todo con fotos pequeñas.
-3. Elige tu plantilla una vez (el navegador la recuerda en IndexedDB; no se sube a ningún servidor ni
-   está en este repositorio, porque trae los textos de tu negocio) y pulsa **Descargar Excel lleno**.
+1. Sube la foto de la tarjeta (frente y reverso). Se llenan marca, línea, modelo, clase, carrocería,
+   cilindraje, motor, VIN, chasis, color, placa, capacidad y los datos del propietario.
+2. Completa lo que no está en la tarjeta (dirección, teléfono y ciudad del propietario; datos del
+   comprador). Los campos con borde ámbar (placa, motor, VIN, chasis, cédula) vienen del OCR y hay que
+   verificarlos con la tarjeta: el OCR los confunde, sobre todo con fotos pequeñas.
+3. Opcional: "Datos de la empresa" (nombre, representante, NIT del mandato jurídico). Si se dejan vacíos se
+   usan los que trae la plantilla; si se escriben, el navegador los recuerda.
 
 Detalles técnicos (`formatos.js`):
 
@@ -76,9 +77,30 @@ Detalles técnicos (`formatos.js`):
   dependen de ella; el resto del archivo (logos, imágenes, estilos, celdas combinadas) queda idéntico.
   No se usa una librería de Excel precisamente para no perder esas imágenes.
 - Todo se escribe en mayúsculas ("TODO DILIGENCIADO EN MAYUSCULA"). Un campo vacío limpia la celda, así
-  no quedan datos de la operación anterior. Las celdas de la empresa (C42:C44) no se tocan.
+  no quedan datos de la operación anterior (salvo los de la empresa, que se conservan).
 - El archivo pide recálculo al abrirse. Hay que abrirlo en Excel y revisar los formatos antes de imprimir.
-- Pruebas: `node herramientas/probar_ocr.js`, y `npm install jszip` + `node herramientas/probar_formatos.js`.
+- La página debe servirse desde un servidor web (no con doble clic en `index.html`) para poder leer la
+  plantilla; al publicar, subir también la carpeta `plantillas/`.
+
+### Actualizar o cambiar los formatos
+
+La plantilla integrada no tiene datos de personas: `herramientas/limpiar_plantilla.py` la prepara a partir
+de tu Excel (vacía los datos de ejemplo, los valores guardados de las fórmulas y los metadatos del autor, y
+verifica que no quede rastro):
+
+```bash
+python herramientas/limpiar_plantilla.py "Documentos Compra De Vehiculos.xlsx" plantillas/documentos-compra.xlsx
+```
+
+La hoja "Datos Basicos" debe conservar su estructura (los datos del vehículo, el propietario y el comprador
+en C3:C40). Si cambias de lugar alguno, hay que ajustar `CAMPOS` en `formatos.js`. La plantilla actual trae
+los datos de la empresa de ejemplo (C42:C44, incluido un NIT de relleno): reemplázalos en Excel o escríbelos
+en la página.
+
+## PDF de la cotización
+
+El botón "Descargar cotización en PDF" (paso 2) genera un PDF A4 con el logo, el vehículo, el detalle de
+valores, el total y las notas, con lo mismo que se ve en pantalla (usa jsPDF, cargado desde jsDelivr).
 
 ## Probar en local
 
@@ -107,3 +129,13 @@ El Ministerio publica la resolución en noviembre (la de 2027 debería salir a f
   lugar de matrícula (descuentos, intereses, tasas).
 - El PDF del Ministerio parte algunos nombres de marca (p. ej. "MESSERSCHMIT T"); se dejaron tal cual.
 - Fuentes 2026: Resolución 20253040048935 de 2025 (Mintransporte) y Decreto 1457 de 2025 (Hacienda).
+
+## Pruebas
+
+```bash
+node herramientas/probar_ocr.js            # lectura e interpretación de la tarjeta (datos inventados)
+node herramientas/probar_coincidencia.js   # coincidencia con las tablas del Ministerio (usa tu Supabase)
+npm install jszip                          # solo para las dos siguientes
+node herramientas/probar_formatos.js       # llenado del Excel con una plantilla mínima inventada
+node herramientas/probar_plantilla.js      # la plantilla integrada no trae datos de personas y se llena bien
+```

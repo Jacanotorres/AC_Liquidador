@@ -1,4 +1,4 @@
-/* Llena la plantilla "Documentos Compra De Vehiculos.xlsx" a partir de los datos de la tarjeta.
+/* Llena la plantilla de formatos (plantillas/documentos-compra.xlsx) a partir de los datos de la tarjeta.
 
    Las hojas de formatos (traspaso, compraventa, mandatos, consignaciones) toman todo de la hoja
    "Datos Basicos" con fórmulas, así que basta con llenar esa hoja. Se edita el XML del .xlsx directamente
@@ -8,7 +8,7 @@
   const HOJA = "Datos Basicos";
 
   /* Celda de "Datos Basicos" <- campo. `auto` = se calcula de otros campos al generar el archivo.
-     Las celdas de la empresa (C42:C44) no se tocan: son fijas de la plantilla. */
+     `conservar` = si el campo queda vacío no se escribe la celda y se mantiene lo que traiga la plantilla. */
   const CAMPOS = [
     { id: "marca", celda: "C3", etiqueta: "Marca", grupo: "vehiculo" },
     { id: "linea", celda: "C4", etiqueta: "Línea", grupo: "vehiculo" },
@@ -48,6 +48,10 @@
     { id: "c_direccion", celda: "C38", etiqueta: "Dirección", grupo: "comprador" },
     { id: "c_telefono", celda: "C39", etiqueta: "Teléfono", grupo: "comprador", tipo: "digitos" },
     { id: "c_ciudad", celda: "C40", etiqueta: "Ciudad", grupo: "comprador" },
+
+    { id: "e_nombre", celda: "C42", etiqueta: "Nombre de la empresa", grupo: "empresa", conservar: true },
+    { id: "e_representante", celda: "C43", etiqueta: "Representante legal", grupo: "empresa", conservar: true },
+    { id: "e_nit", celda: "C44", etiqueta: "NIT", grupo: "empresa", conservar: true },
   ];
 
   const unir = (...p) => p.map((x) => String(x ?? "").trim()).filter(Boolean).join(" ");
@@ -83,7 +87,10 @@
       t[nom] = unir(t[`${pre}_nombres`], t[`${pre}_apellido1`], t[`${pre}_apellido2`]);
     }
     const celdas = {};
-    for (const c of CAMPOS) celdas[c.celda] = t[c.id];
+    for (const c of CAMPOS) {
+      if (c.conservar && !t[c.id]) continue;     // vacío: se deja lo que traiga la plantilla
+      celdas[c.celda] = t[c.id];
+    }
     return celdas;
   }
 
@@ -103,17 +110,31 @@
 
   /* Las hojas de formatos guardan el último valor calculado de cada fórmula. Para las referencias simples
      ('Datos Basicos'!C13) se actualiza ese valor, así se ve bien aunque el visor no recalcule. */
-  function refrescarCache(xml, celdas) {
+  function refrescarCache(xml, celdas, buscar) {
     const re = /<c r="([A-Z]+\d+)"([^>]*)>(<f>\+?'Datos Basicos'!\$?([A-Z]+)\$?(\d+)<\/f>)(?:<v>[\s\S]*?<\/v>|<v\/>)?<\/c>/g;
     let n = 0;
     const salida = xml.replace(re, (todo, ref, attrs, f, col, fila) => {
       const clave = `${col}${fila}`;
-      if (!(clave in celdas)) return todo;
+      // Lo que no se escribe (p. ej. la empresa) se toma tal cual de la plantilla.
+      const valor = clave in celdas ? celdas[clave] : (buscar ? buscar(clave) : null);
+      if (valor === null || valor === undefined) return todo;
       n++;
       const a = attrs.replace(/\s+t="[^"]*"/, "");
-      return `<c r="${ref}"${a} t="str">${f}<v>${esc(celdas[clave])}</v></c>`;
+      return `<c r="${ref}"${a} t="str">${f}<v>${esc(valor)}</v></c>`;
     });
     return { xml: salida, n };
+  }
+
+  const desescapar = (t) => t.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+
+  /* Valor de texto de una celda de la hoja (resuelve textos compartidos y en línea). */
+  function leerCelda(xml, textos, ref) {
+    const m = new RegExp(`<c r="${ref}"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`).exec(xml);
+    if (!m || !m[2]) return "";
+    const v = /<v>([^<]*)<\/v>/.exec(m[2]);
+    if (/t="s"/.test(m[1]) && v) return textos[Number(v[1])] ?? "";
+    if (/t="inlineStr"/.test(m[1])) return desescapar((m[2].match(/<t[^>]*>([^<]*)<\/t>/) || [, ""])[1]);
+    return v ? desescapar(v[1]) : "";
   }
 
   /* bytes del .xlsx + valores por celda -> bytes del .xlsx llenado. JSZip se pasa como parámetro. */
@@ -140,11 +161,14 @@
     zip.file(ruta, xml);
 
     // Valores guardados de las hojas de formatos
+    const ssFile = zip.file("xl/sharedStrings.xml");
+    const textos = ssFile ? ((await ssFile.async("string")).match(/<si>[\s\S]*?<\/si>|<si\/>/g) || []).map((x) => desescapar(x.replace(/<[^>]+>/g, ""))) : [];
+    const buscar = (ref) => leerCelda(xml, textos, ref);
     let refrescadas = 0;
     for (const nombre of Object.keys(zip.files)) {
       if (!/^xl\/worksheets\/sheet\d+\.xml$/.test(nombre) || nombre === ruta) continue;
       const orig = await zip.file(nombre).async("string");
-      const { xml: nuevo, n } = refrescarCache(orig, celdas);
+      const { xml: nuevo, n } = refrescarCache(orig, celdas, buscar);
       if (n) { zip.file(nombre, nuevo); refrescadas += n; }
     }
 
