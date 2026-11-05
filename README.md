@@ -9,8 +9,8 @@ tablas del Ministerio guardadas en Supabase y las tarifas del decreto de Haciend
 1. **Vehículo.** Sube la foto de la tarjeta de propiedad (frente y reverso, tocando o arrastrando) o elige
    el vehículo a mano. Si la línea no es única, se muestran las opciones del Ministerio con su avalúo
    para elegir la versión exacta.
-2. **Cotización.** Escribe valor, descuento, SOAT y trámites: la cotización se calcula sola mientras
-   escribes. Se descarga en PDF.
+2. **Cotización.** Elige la operación (somos vendedores o somos compradores), escribe los valores y los
+   trámites: la cotización se calcula sola mientras escribes. Se descarga en PDF. Ver "Los dos roles".
 3. **Documentos.** Elige el documento (FUN, compraventa o contrato de mandato), mira la vista previa y
    descárgalo en Excel o en PDF. Cada uno sale por separado y se llena solo. Se ve cuántos campos faltan por
    grupo.
@@ -23,6 +23,7 @@ nuevo" borra la operación. En el celular, el valor final queda fijo abajo mient
 | Ruta | Qué es |
 |---|---|
 | `index.html` | La página y su lógica. Configurar `CONFIG` al inicio del script. |
+| `cotizacion.js` | Cuentas de la cotización para cada rol del concesionario (sin pantalla, se prueba en Node). |
 | `tarjeta.js` | Lee la tarjeta de propiedad (OCR) y la busca en las tablas del Ministerio. |
 | `formatos.js` | Llena la hoja Datos Basicos y deja un Excel por documento. |
 | `hoja.js`, `dibujo.js` | Leen una hoja de la plantilla y la dibujan en PDF y en la vista previa. |
@@ -110,6 +111,22 @@ en C3:C40). Si cambias de lugar alguno, hay que ajustar `CAMPOS` en `formatos.js
 los datos de la empresa de ejemplo (C42:C44, incluido un NIT de relleno): reemplázalos en Excel o escríbelos
 en la página.
 
+## Los dos roles de la cotización
+
+| | Somos vendedores (el cliente compra) | Somos compradores (el cliente vende) |
+|---|---|---|
+| Parte del | valor del vehículo menos el descuento | valor acordado por el vehículo |
+| Se suma | impuesto, SOAT, traspaso, tramitador y prenda (si aplica) | nada |
+| Se resta | nada | retención en la fuente, impuesto del cliente, mitad del traspaso y mitad del tramitador |
+| Resultado | "Valor final" que paga el cliente | "Valor a pagar al cliente"; el PDF sale como "Liquidación de compra" |
+
+- **Retención en la fuente:** `CONFIG.retencion` (1 %) sobre el **valor de Fasecolda**, no sobre el valor
+  acordado. Ese valor se escribe a mano; si falta, la cotización lo avisa y no inventa la retención.
+- **Meses del impuesto:** si vendemos, el cliente paga desde el mes elegido hasta diciembre; si compramos, el
+  mes elegido es el de la compra y el cliente paga de enero al mes anterior (así los dos clientes se reparten
+  los 12 meses). Es una convención; confírmala con tu contador.
+- SOAT, prenda y descuento solo existen cuando somos vendedores. El rol elegido se recuerda en el navegador.
+
 ## PDF de la cotización
 
 El botón "Descargar cotización en PDF" (paso 2) genera un PDF A4 con el logo, el vehículo, el detalle de
@@ -148,6 +165,7 @@ El Ministerio publica la resolución en noviembre (la de 2027 debería salir a f
 ```bash
 node herramientas/probar_ocr.js            # lectura e interpretación de la tarjeta (datos inventados)
 node herramientas/probar_coincidencia.js   # coincidencia con las tablas del Ministerio (usa tu Supabase)
+node herramientas/probar_cotizacion.js     # cuentas de los dos roles (vendedor y comprador)
 npm install jszip jspdf                    # solo para las tres siguientes
 node herramientas/probar_formatos.js       # llenado del Excel con una plantilla mínima inventada
 node herramientas/probar_plantilla.js      # la plantilla integrada no trae datos de personas y se llena bien

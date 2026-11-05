@@ -368,7 +368,7 @@
   <div class="resumen no-print" id="resumen" hidden aria-live="polite">
     <div class="r-nombre" id="r-nombre"></div>
     <div class="r-chips" id="r-chips"></div>
-    <div class="r-total" id="r-total" hidden><small>Valor final</small><span id="r-total-v"></span></div>
+    <div class="r-total" id="r-total" hidden><small id="r-total-t">Valor final</small><span id="r-total-v"></span></div>
   </div>
 
   <form id="form" novalidate>
@@ -469,6 +469,15 @@
       <div class="grid">
         <div class="col-form apila no-print">
           <div class="card">
+            <h3 class="card-t">Operación</h3>
+            <div class="seg" role="radiogroup" aria-label="Qué hace el concesionario en esta operación">
+              <label><input type="radio" name="rol" value="vendedor" checked> Somos vendedores</label>
+              <label><input type="radio" name="rol" value="comprador"> Somos compradores</label>
+            </div>
+            <p class="hint" id="rol-hint"></p>
+          </div>
+
+          <div class="card">
             <h3 class="card-t">Valores</h3>
             <div class="field">
               <label for="cliente">Cliente (opcional)</label>
@@ -476,10 +485,10 @@
             </div>
             <div class="row two">
               <div class="field" style="margin-bottom:0">
-                <label for="precio">Valor del vehículo</label>
+                <label for="precio" id="precio-l">Valor del vehículo</label>
                 <input id="precio" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
               </div>
-              <div class="field" style="margin-bottom:0">
+              <div class="field" style="margin-bottom:0" data-rol="vendedor">
                 <label for="descuento">Descuento</label>
                 <input id="descuento" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
                 <div class="hint err" id="descuento-hint" hidden>El descuento no puede ser mayor que el valor del vehículo.</div>
@@ -487,10 +496,19 @@
             </div>
           </div>
 
+          <div class="card" data-rol="comprador" hidden>
+            <h3 class="card-t">Retención en la fuente</h3>
+            <div class="field" style="margin-bottom:0">
+              <label for="fasecolda">Valor en Fasecolda</label>
+              <input id="fasecolda" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
+              <div class="hint" id="fasecolda-hint"></div>
+            </div>
+          </div>
+
           <div class="card">
             <h3 class="card-t">Trámites</h3>
             <div class="row two">
-              <div class="field">
+              <div class="field" data-rol="vendedor">
                 <label for="soat">SOAT</label>
                 <input id="soat" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
               </div>
@@ -504,18 +522,19 @@
                 <label for="tramitador">Tramitador</label>
                 <input id="tramitador" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off">
               </div>
-              <div class="field" style="margin-bottom:0">
+              <div class="field" style="margin-bottom:0" data-rol="vendedor">
                 <label class="check" for="usaPrenda"><input id="usaPrenda" type="checkbox"> Incluir prenda</label>
                 <input id="prenda" type="text" inputmode="numeric" placeholder="$ 0" autocomplete="off" aria-label="Valor de la prenda">
               </div>
             </div>
-            <p class="hint">Traspaso, tramitador y prenda se recuerdan en este navegador para la próxima cotización.</p>
+            <p class="hint" data-rol="vendedor">Traspaso, tramitador y prenda se recuerdan en este navegador para la próxima cotización.</p>
+            <p class="hint" data-rol="comprador" hidden>Escribe el valor completo del traspaso y del tramitador: al cliente se le descuenta la mitad de cada uno. Se recuerdan en este navegador.</p>
           </div>
 
           <div class="card">
             <h3 class="card-t">Impuesto del vehículo</h3>
             <div class="field">
-              <label for="mes">Mes desde el cual se cobra</label>
+              <label for="mes" id="mes-l">Mes desde el cual se cobra</label>
               <select id="mes"></select>
               <div class="hint" id="mes-hint"></div>
             </div>
@@ -602,7 +621,7 @@
 </dialog>
 
 <div class="barra-total no-print" id="barra-total" hidden>
-  <div><small>Valor final</small><strong id="bt-valor"></strong></div>
+  <div><small id="bt-t">Valor final</small><strong id="bt-valor"></strong></div>
   <button type="button" class="primary" id="bt-ver">Ver detalle</button>
 </div>
 
@@ -610,6 +629,7 @@
 <script src="formatos.js"></script>
 <script src="hoja.js"></script>
 <script src="dibujo.js"></script>
+<script src="cotizacion.js"></script>
 <script>
 /* Configuración: pegar la URL del proyecto y la llave pública (anon o publishable) de Supabase.
    La llave pública es segura aquí: las tablas son de solo lectura (ver supabase-base-gravable.sql). */
@@ -621,6 +641,8 @@ const CONFIG = {
   fuente: "Resolución 20253040048935 de 2025 del Ministerio de Transporte y Decreto 1457 de 2025 (tarifas)",
   /* Valores de ejemplo para precargar; cada concesionario los ajusta en pantalla y quedan guardados. */
   tramites: { traspaso: 180000, tramitador: 180000, prenda: 280000 },
+  /* Retención en la fuente cuando el cliente nos vende el carro: porcentaje del valor de Fasecolda. */
+  retencion: 0.01,
 };
 
 /* Tipos con tarifa cargada (particulares). Las demás tablas necesitan sus propias tarifas. */
@@ -634,7 +656,7 @@ const TIPOS = [
 
 const $ = (id) => document.getElementById(id);
 const COP = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-const MONTOS = ["precio", "descuento", "soat", "traspaso", "tramitador", "prenda", "factura"];
+const MONTOS = ["precio", "descuento", "soat", "traspaso", "tramitador", "prenda", "factura", "fasecolda"];
 let lineas = [];          // líneas de la marca elegida
 let ultimo = null;        // último cálculo (base, tarifa e impuesto) y lo necesario para pintar la cotización
 let tarjeta = null;       // datos leídos de la tarjeta, si se usó la foto
@@ -1281,29 +1303,71 @@ function construirDocumentos() {
   }
 }
 
-/* ---------- Mes del impuesto ---------- */
+/* ---------- Rol del concesionario y mes del impuesto ---------- */
 
-const nombreMes = (m) => new Date(CONFIG.vigencia, m - 1, 1).toLocaleDateString("es-CO", { month: "long" });
+const nombreMes = Cotizacion.nombreMes;
+const rolActual = () => document.querySelector('input[name="rol"]:checked').value;
+const TEXTOS_ROL = {
+  vendedor: {
+    hint: "El cliente nos compra el carro: paga el valor más el impuesto, el SOAT, el traspaso, el tramitador y la prenda si aplica. No hay retención.",
+    precio: "Valor del vehículo", mes: "Mes desde el cual se cobra", total: "Valor final",
+  },
+  comprador: {
+    hint: "El cliente nos vende el carro: del valor acordado se descuentan la retención en la fuente, el impuesto que le corresponde y la mitad del traspaso y del tramitador. No hay SOAT ni prenda.",
+    precio: "Valor acordado por el vehículo", mes: "Mes de la compra (el cliente paga hasta el mes anterior)", total: "Valor a pagar al cliente",
+  },
+};
 
-/* "" = año completo (12 meses). Si no, cuenta el mes elegido y los siguientes hasta diciembre. */
-function mesesDelCobro(mes) { return mes ? 13 - Number(mes) : 12; }
-
-function llenarMeses() {
+function llenarMeses(rol = rolActual()) {
   const sel = $("mes");
   sel.innerHTML = "";
-  sel.add(new Option("Año completo (12 meses)", ""));
+  if (rol === "vendedor") sel.add(new Option("Año completo (12 meses)", ""));
   for (let m = 1; m <= 12; m++) {
-    const n = mesesDelCobro(m);
-    sel.add(new Option(`Desde ${nombreMes(m)} (${n} ${n === 1 ? "mes" : "meses"})`, String(m)));
+    const { meses, rango } = Cotizacion.mesesImpuesto(rol, m), mes = nombreMes(m);
+    const plural = meses === 1 ? "mes" : "meses";
+    sel.add(new Option(rol === "vendedor" ? `Desde ${mes} (${meses} ${plural})`
+      : `${mes[0].toUpperCase() + mes.slice(1)} · el cliente paga ${meses} ${plural}${meses ? ` (${rango})` : ""}`, String(m)));
   }
+  sel.value = rol === "vendedor" ? "" : String(new Date().getMonth() + 1);   // al comprar, por defecto el mes actual
   actualizarHintMes();
 }
 
 function actualizarHintMes() {
-  const n = mesesDelCobro($("mes").value);
-  $("mes-hint").textContent = n === 12
+  const rol = rolActual(), { meses, rango } = Cotizacion.mesesImpuesto(rol, $("mes").value);
+  if (rol === "comprador") {
+    $("mes-hint").textContent = meses
+      ? `El cliente paga ${meses}/12 del impuesto anual (${rango}); el resto le toca a quien compre el carro.`
+      : "El cliente no paga impuesto de este año: le toca a quien compre el carro.";
+    return;
+  }
+  $("mes-hint").textContent = meses === 12
     ? "Se cobra el impuesto del año completo."
-    : `Se cobra ${n}/12 del impuesto anual, contando ${$("mes").value === "12" ? "diciembre" : nombreMes($("mes").value) + " y los meses siguientes hasta diciembre"}.`;
+    : `Se cobra ${meses}/12 del impuesto anual, contando ${$("mes").value === "12" ? "diciembre" : nombreMes($("mes").value) + " y los meses siguientes hasta diciembre"}.`;
+}
+
+function actualizarHintFasecolda() {
+  const f = monto("fasecolda"), pct = (CONFIG.retencion * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 });
+  $("fasecolda-hint").textContent = f
+    ? `Se descuenta el ${pct} % de este valor (${COP.format(Math.round(f * CONFIG.retencion))}), no del valor acordado.`
+    : `Se descuenta el ${pct} % de este valor, no del valor acordado. Sin él no se calcula la retención.`;
+  $("fasecolda-hint").className = "hint" + (f ? "" : " err");
+}
+
+/* Muestra solo lo que corresponde al rol y recalcula. */
+function aplicarRol() {
+  const rol = rolActual(), t = TEXTOS_ROL[rol];
+  document.querySelectorAll("[data-rol]").forEach((e) => { e.hidden = e.dataset.rol !== rol; });
+  $("rol-hint").textContent = t.hint; $("precio-l").textContent = t.precio; $("mes-l").textContent = t.mes;
+  $("r-total-t").textContent = t.total; $("bt-t").textContent = t.total;
+  guardar("ac.rol", rol);
+  llenarMeses(rol); actualizarHintFasecolda();
+  programarCalculo(); actualizarResumen();
+}
+
+function cargarRol() {
+  const r = leer("ac.rol") === "comprador" ? "comprador" : "vendedor";
+  document.querySelector(`input[name="rol"][value="${r}"]`).checked = true;
+  aplicarRol();
 }
 
 /* ---------- Cálculo y cotización ---------- */
@@ -1349,16 +1413,17 @@ function fila(dl, etiqueta, valor, fuerte) {
 
 function pintarCotizacion() {
   const { r, l, nuevo, anio, factor } = ultimo;
-  const precio = monto("precio"), descuento = monto("descuento");
+  const rol = rolActual();
+  const precio = monto("precio"), descuento = rol === "vendedor" ? monto("descuento") : 0;
   const descuentoMal = !!(precio && descuento > precio);
   $("descuento-hint").hidden = !descuentoMal;
   if (descuentoMal) return;                  // se deja la cotización anterior hasta corregir el descuento
 
-  const mes = $("mes").value;
-  const meses = mesesDelCobro(mes);
-  const parcial = meses !== 12;
-  const impuesto = parcial ? Math.round(r.impuesto * meses / 12) : r.impuesto;
-  const rango = mes === "12" ? "diciembre" : `${nombreMes(mes)} a diciembre`;
+  const calc = Cotizacion.calcular({
+    rol, precio, descuento, soat: monto("soat"), traspaso: monto("traspaso"), tramitador: monto("tramitador"),
+    prenda: $("usaPrenda").checked ? monto("prenda") : 0, fasecolda: monto("fasecolda"), tasaRetencion: CONFIG.retencion,
+    mes: $("mes").value, impuestoAnual: r.impuesto, baseGravable: r.base_gravable, tarifa: r.tarifa, nuevo,
+  });
   const ahora = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const placa = $("placa").value.trim().toUpperCase();
@@ -1369,7 +1434,7 @@ function pintarCotizacion() {
     nuevo ? "Nuevo" : (anio === 2001 ? "Modelo 2001 o anterior" : "Modelo " + anio),
   ].filter(Boolean).join(" · ");
   $("q-numero").textContent =
-    `COT-${ahora.getFullYear()}${pad(ahora.getMonth() + 1)}${pad(ahora.getDate())}-${pad(ahora.getHours())}${pad(ahora.getMinutes())}\n` +
+    `${rol === "comprador" ? "LIQ" : "COT"}-${ahora.getFullYear()}${pad(ahora.getMonth() + 1)}${pad(ahora.getDate())}-${pad(ahora.getHours())}${pad(ahora.getMinutes())}\n` +
     ahora.toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
 
   const dl = $("q-filas"); dl.innerHTML = "";
@@ -1377,49 +1442,20 @@ function pintarCotizacion() {
   const add = (e, v, fuerte) => { fila(dl, e, v, fuerte); filas.push([e, v, !!fuerte]); };
   const cliente = $("cliente").value.trim();
   if (cliente) add("Cliente", cliente);
+  for (const f of calc.filas) add(f.etiqueta, f.texto !== undefined ? f.texto : COP.format(f.valor), f.fuerte);
+  $("q-total-t").textContent = calc.totalTitulo;
+  $("q-total").textContent = COP.format(calc.total);
 
-  const soat = monto("soat"), traspaso = monto("traspaso"), tramitador = monto("tramitador");
-  const prenda = $("usaPrenda").checked ? monto("prenda") : 0;
-  const nota = [`Valor estimado para la vigencia ${CONFIG.vigencia}, a título informativo.`];
-  let total, totalTitulo;
-
-  if (precio) {
-    const conDescuento = precio - descuento;
-    const papeles = impuesto + soat + traspaso + tramitador + prenda;
-    add("Valor del vehículo", COP.format(precio));
-    if (descuento) add("Descuento", COP.format(-descuento));
-    add("Valor con descuento", COP.format(conDescuento), true);
-    add(parcial ? `Impuesto departamento (${rango}: ${meses}/12)` : "Impuesto departamento", COP.format(impuesto));
-    if (soat) add("SOAT", COP.format(soat));
-    if (traspaso) add("Traspaso", COP.format(traspaso));
-    if (tramitador) add("Tramitador", COP.format(tramitador));
-    if (prenda) add("Prenda", COP.format(prenda));
-    add("Total papeles", COP.format(papeles), true);
-    totalTitulo = "Valor final"; total = conDescuento + papeles;
-  } else {
-    add(nuevo ? "Base gravable (factura sin IVA)" : "Base gravable (avalúo del Ministerio)", COP.format(r.base_gravable));
-    add("Tarifa", (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 }) + " %");
-    if (parcial) add("Impuesto anual", COP.format(r.impuesto));
-    totalTitulo = parcial ? `Impuesto estimado (${rango}: ${meses} de 12 meses)` : "Impuesto vehicular anual estimado";
-    total = impuesto;
-  }
-  $("q-total-t").textContent = totalTitulo;
-  $("q-total").textContent = COP.format(total);
-
-  const tarifaTxt = (r.tarifa * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 });
-  if (precio) {
-    nota.push(`Impuesto anual estimado: base gravable ${COP.format(r.base_gravable)} por una tarifa del ${tarifaTxt} %, es decir ${COP.format(r.impuesto)}.`);
-  }
-  if (parcial) {
-    nota.push(`Se cobra proporcional a ${meses} de 12 meses (${rango}): ${COP.format(r.impuesto)} × ${meses} / 12 = ${COP.format(impuesto)}. En general la gobernación liquida el año completo; el cobro por meses es el valor que acuerdan las partes.`);
-  }
+  const nota = [`Valor estimado para la vigencia ${CONFIG.vigencia}, a título informativo.`, ...calc.notas, ...calc.avisos];
   if (!nuevo) nota.push(`Avalúo tomado de la línea ${etiquetaLinea(l)} del Ministerio de Transporte.`);
   if (factor !== 1) nota.push(`Se aplicó ${factor * 100} % sobre el avalúo por el tipo de registro.`);
-  nota.push("La liquidación oficial la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta cotización no considera. El SOAT, el traspaso, el tramitador y la prenda son los valores digitados por el concesionario.");
+  nota.push(rol === "comprador"
+    ? "La liquidación oficial del impuesto la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta liquidación no considera. El traspaso y el tramitador son los valores digitados por el concesionario."
+    : "La liquidación oficial la hace la gobernación o secretaría de hacienda del lugar de matrícula; puede incluir descuentos por pronto pago, intereses, tasas y otros cobros que esta cotización no considera. El SOAT, el traspaso, el tramitador y la prenda son los valores digitados por el concesionario.");
   nota.push("Fuente: " + CONFIG.fuente + ".");
   $("q-nota").textContent = nota.join(" ");
 
-  ultimo.total = total; ultimo.totalTitulo = totalTitulo; ultimo.filas = filas;
+  ultimo.rol = rol; ultimo.total = calc.total; ultimo.totalTitulo = calc.totalTitulo; ultimo.filas = filas; ultimo.tituloDoc = calc.tituloDoc;
   ultimo.titulo = `${$("q-vehiculo").textContent} (${$("q-detalle").textContent})`;
   $("vacio").hidden = true; $("cotizacion").hidden = false;
   actualizarResumen();
@@ -1474,7 +1510,7 @@ async function construirPDF() {
 
   // Título y número de cotización
   y += 11;
-  fuente("bold", 20, INK); txt("Cotización", M, y);
+  fuente("bold", 20, INK); txt(ultimo.tituloDoc || "Cotización", M, y);
   const [numero, fecha] = $("q-numero").textContent.split("\n");
   fuente("normal", 8.5, MUTED); txt(numero || "", W - M, y - 5.5, { align: "right" }); txt(fecha || "", W - M, y - 1, { align: "right" });
 
@@ -1517,7 +1553,7 @@ async function construirPDF() {
   const paginas = doc.getNumberOfPages();
   for (let i = 1; i <= paginas; i++) {
     doc.setPage(i); doc.setDrawColor(...LINEA); doc.setLineWidth(0.3); doc.line(M, H - 15, W - M, H - 15);
-    fuente("normal", 7, MUTED); txt("Cotización generada con AC Studio · Cotizador de vehículos", M, H - 10.5);
+    fuente("normal", 7, MUTED); txt(`${ultimo.tituloDoc || "Cotización"} generada con AC Studio · Cotizador de vehículos`, M, H - 10.5);
     txt(`Página ${i} de ${paginas}`, W - M, H - 10.5, { align: "right" });
   }
   return doc;
@@ -1529,7 +1565,7 @@ async function descargarPDF() {
   try {
     const doc = await construirPDF();
     const placa = ($("placa").value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    doc.save(`Cotizacion${placa ? " " + placa : ""}.pdf`);
+    doc.save(`${ultimo.rol === "comprador" ? "Liquidacion" : "Cotizacion"}${placa ? " " + placa : ""}.pdf`);
   } catch (e) { mostrarError(e.message); }
   finally { btn.disabled = false; btn.textContent = "Descargar cotización en PDF"; }
 }
@@ -1551,7 +1587,7 @@ function nueva() {
   $("foto-estado").hidden = true; $("foto-aviso").hidden = true; $("minis").innerHTML = "";
   urlsMinis.forEach((u) => URL.revokeObjectURL(u)); urlsMinis = [];
   ocultarCandidatas(); limpiarCamposFormato();
-  $("form").reset(); cambiarModo("foto"); alternarEstado(); cargarTramites(); actualizarHintMes();
+  $("form").reset(); cambiarModo("foto"); alternarEstado(); cargarTramites(); cargarRol();
   $("descuento-hint").hidden = true;
   mostrarError("");
   sinCotizacion();
@@ -1596,6 +1632,8 @@ document.querySelectorAll('input[name="estado"]').forEach((r) => r.addEventListe
 
 // Cotización en vivo
 $("mes").addEventListener("change", () => { actualizarHintMes(); programarCalculo(); });
+document.querySelectorAll('input[name="rol"]').forEach((r) => r.addEventListener("change", aplicarRol));
+$("fasecolda").addEventListener("input", actualizarHintFasecolda);
 $("regimen").addEventListener("change", programarCalculo);
 for (const id of MONTOS) $(id).addEventListener("input", (e) => { formatearMonto(e.target); actualizarBoton(); });
 $("cliente").addEventListener("input", programarCalculo);
@@ -1625,7 +1663,7 @@ $("vista").addEventListener("click", (e) => { if (e.target === $("vista")) $("vi
 $("vista-pdf").addEventListener("click", (e) => conCarga(e.currentTarget, "Generando…", () => descargarPDFDoc(docVista)));
 $("vista-xlsx").addEventListener("click", (e) => conCarga(e.currentTarget, "Generando…", () => descargarExcelDoc(docVista)));
 
-llenarMeses();
+cargarRol();
 cargarTramites();
 cargarMarcas();
 actualizarResumen();
