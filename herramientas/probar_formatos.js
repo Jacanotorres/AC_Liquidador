@@ -35,7 +35,7 @@ async function plantillaMinima() {
   const hoja = await z.file("xl/worksheets/sheet1.xml").async("string");
   assert.ok(hoja.includes('<c r="C3" s="5" t="inlineStr"><is><t xml:space="preserve">TOYOTA</t></is></c>'));
   assert.ok(hoja.includes("AV 5 # 6 &amp; &lt;7&gt;"), "escapa & < >");
-  assert.ok(/<c r="C31" s="5"\/>/.test(hoja), "un valor vacío limpia la celda (no deja datos viejos)");
+  assert.ok(/<c r="C31" s="5" t="inlineStr"><is><t xml:space="preserve"><\/t><\/is><\/c>/.test(hoja), "un valor vacío deja texto vacío (sin datos viejos y sin que las fórmulas muestren 0)");
   const f = await z.file("xl/worksheets/sheet2.xml").async("string");
   assert.ok(f.includes("<v>TOYOTA</v>") && f.includes("<v>LUIS FERNANDO</v>") && !f.includes("VIEJO"), "valores guardados de las fórmulas");
   assert.ok(f.includes("<f>TODAY()</f><v>1</v>"), "otras fórmulas no se tocan");

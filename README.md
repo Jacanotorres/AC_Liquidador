@@ -11,8 +11,9 @@ tablas del Ministerio guardadas en Supabase y las tarifas del decreto de Haciend
    para elegir la versión exacta.
 2. **Cotización.** Escribe valor, descuento, SOAT y trámites: la cotización se calcula sola mientras
    escribes. Se descarga en PDF.
-3. **Documentos.** Revisa los datos y pulsa "Generar documentos": se descarga el Excel con los 7 formatos
-   ya llenos. Se ve cuántos campos faltan por grupo.
+3. **Documentos.** Elige el documento (FUN, compraventa o contrato de mandato), mira la vista previa y
+   descárgalo en Excel o en PDF. Cada uno sale por separado y se llena solo. Se ve cuántos campos faltan por
+   grupo.
 
 Arriba, un resumen con el vehículo y el valor final queda a la vista en todos los pasos; "Empezar de
 nuevo" borra la operación. En el celular, el valor final queda fijo abajo mientras se arma la cotización.
@@ -21,10 +22,14 @@ nuevo" borra la operación. En el celular, el valor final queda fijo abajo mient
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | La página (un solo archivo, sin librerías). Configurar `CONFIG` al inicio del script. |
+| `index.html` | La página y su lógica. Configurar `CONFIG` al inicio del script. |
+| `tarjeta.js` | Lee la tarjeta de propiedad (OCR) y la busca en las tablas del Ministerio. |
+| `formatos.js` | Llena la hoja Datos Basicos y deja un Excel por documento. |
+| `hoja.js`, `dibujo.js` | Leen una hoja de la plantilla y la dibujan en PDF y en la vista previa. |
+| `assets/` | Logo, íconos y `logo-runt.png` (copia en PNG del logo de RUNT del FUN). |
 | `supabase-base-gravable.sql` | Tablas, políticas (solo lectura pública) y funciones `avaluo_marcas`, `avaluo_lineas`, `calcular_impuesto_vehicular`. |
 | `datos/avaluo_vehiculos_2026.csv` | 16.090 líneas de vehículo con avalúos por año modelo, en pesos. |
-| `plantillas/documentos-compra.xlsx` | Plantilla integrada de los 7 formatos, sin datos de personas. |
+| `plantillas/documentos-compra.xlsx` | Plantilla integrada de los formatos (hoy se usan FUN, compraventa y mandato), sin datos de personas. |
 | `herramientas/extraer_tabla.py` | PDF de un anexo del Ministerio → CSV (requiere `pdfplumber`). |
 | `herramientas/preparar_csv.py` | Une los CSV de las tablas 1 a 9 en el CSV de carga. |
 | `herramientas/servidor_prueba.py` | Servidor local que imita Supabase sobre Postgres, para probar sin credenciales. |
@@ -56,31 +61,39 @@ queda en caché.
 - Traspaso, tramitador y prenda vienen precargados con valores de ejemplo (`CONFIG.tramites`); en
   pantalla se pueden cambiar y el navegador los recuerda. El SOAT se digita por cotización.
 
-## Documentos de compra (traspaso, compraventa, mandatos y consignaciones)
+## Documentos de compra (FUN, compraventa y contrato de mandato)
 
-Los formatos vienen **integrados**: `plantillas/documentos-compra.xlsx` se incluye con la aplicación y el
-botón **Generar documentos** (paso 3) la llena y descarga un Excel con los 7 formatos. No hay que subir
-ningún archivo. Sus hojas de formatos toman todo de la hoja **Datos Basicos** con fórmulas; la página solo
-llena esa hoja.
+Los formatos vienen **integrados**: `plantillas/documentos-compra.xlsx` se incluye con la aplicación. En el
+paso 3 hay una tarjeta por documento, cada una con **Vista previa**, **Excel** y **PDF**. No hay que subir
+ningún archivo. Por ahora están estos tres; los otros formatos de la plantilla (mandato jurídico, doble
+dueño, consignaciones) quedaron fuera a propósito.
 
-1. Sube la foto de la tarjeta (frente y reverso). Se llenan marca, línea, modelo, clase, carrocería,
-   cilindraje, motor, VIN, chasis, color, placa, capacidad y los datos del propietario.
-2. Completa lo que no está en la tarjeta (dirección, teléfono y ciudad del propietario; datos del
-   comprador). Los campos con borde ámbar (placa, motor, VIN, chasis, cédula) vienen del OCR y hay que
-   verificarlos con la tarjeta: el OCR los confunde, sobre todo con fotos pequeñas.
-3. Opcional: "Datos de la empresa" (nombre, representante, NIT del mandato jurídico). Si se dejan vacíos se
-   usan los que trae la plantilla; si se escriben, el navegador los recuerda.
+- **Vista previa:** muestra las páginas tal como saldrán, antes de descargar.
+- **PDF:** se dibuja directamente desde la hoja de la plantilla (columnas, celdas combinadas, bordes,
+  negritas y subrayados, logos e imágenes), con las medidas de impresión del Excel (por ejemplo el FUN en
+  horizontal a 75 % y 2 páginas). No pasa por Excel, así que puede haber pequeñas diferencias con lo que
+  imprimiría Excel.
+- **Excel:** un archivo con solo ese documento. Trae además la hoja "Datos Basicos" oculta para que las
+  fórmulas sigan vivas: si cambias un dato ahí, el documento se actualiza.
 
-Detalles técnicos (`formatos.js`):
+Cómo se llenan: sube la foto de la tarjeta (frente y reverso), completa lo que no está en ella (dirección,
+teléfono y ciudad del propietario; datos del comprador) y revisa los campos con borde ámbar (placa, motor,
+VIN, chasis, cédula): vienen del OCR, que los confunde, sobre todo con fotos pequeñas. En "Datos de la
+empresa" se pueden poner el nombre, el representante y el NIT; vacíos, se usan los de la plantilla.
 
-- Solo se modifica el XML de la hoja "Datos Basicos" y los valores guardados de las fórmulas que
-  dependen de ella; el resto del archivo (logos, imágenes, estilos, celdas combinadas) queda idéntico.
-  No se usa una librería de Excel precisamente para no perder esas imágenes.
-- Todo se escribe en mayúsculas ("TODO DILIGENCIADO EN MAYUSCULA"). Un campo vacío limpia la celda, así
-  no quedan datos de la operación anterior (salvo los de la empresa, que se conservan).
-- El archivo pide recálculo al abrirse. Hay que abrirlo en Excel y revisar los formatos antes de imprimir.
-- La página debe servirse desde un servidor web (no con doble clic en `index.html`) para poder leer la
-  plantilla; al publicar, subir también la carpeta `plantillas/`.
+Detalles técnicos:
+
+- `formatos.js` llena la hoja **Datos Basicos** editando el XML (sin librería de Excel, para no perder
+  imágenes ni estilos) y `soloHoja` deja un Excel con un solo documento. Un campo vacío se escribe como texto
+  vacío, no como celda vacía, porque en Excel una fórmula que apunta a una celda vacía muestra "0".
+- `hoja.js` lee una hoja (anchos, alturas, combinadas, estilos, textos con formato, imágenes), calcula las
+  fórmulas (referencias a Datos Basicos y a la misma hoja, y `TODAY()`) y arma las páginas. `dibujo.js` las
+  pinta en un PDF (jsPDF) y en la vista previa (canvas) con las mismas instrucciones.
+- El logo de RUNT del FUN viene en un formato (EMF) que los navegadores no dibujan: se usa una copia en PNG,
+  `assets/logo-runt.png`, extraída de ese mismo archivo.
+- Para agregar otro documento: sumar una entrada a `DOCUMENTOS` en `index.html` con el nombre de su hoja.
+- La página debe servirse desde un servidor web (no con doble clic en `index.html`); al publicar, subir también
+  `plantillas/`, `assets/`, `hoja.js` y `dibujo.js`.
 
 ### Actualizar o cambiar los formatos
 
@@ -135,7 +148,8 @@ El Ministerio publica la resolución en noviembre (la de 2027 debería salir a f
 ```bash
 node herramientas/probar_ocr.js            # lectura e interpretación de la tarjeta (datos inventados)
 node herramientas/probar_coincidencia.js   # coincidencia con las tablas del Ministerio (usa tu Supabase)
-npm install jszip                          # solo para las dos siguientes
+npm install jszip jspdf                    # solo para las tres siguientes
 node herramientas/probar_formatos.js       # llenado del Excel con una plantilla mínima inventada
 node herramientas/probar_plantilla.js      # la plantilla integrada no trae datos de personas y se llena bien
+node herramientas/probar_documentos.js     # los 3 documentos: páginas, textos, PDF y Excel individual
 ```

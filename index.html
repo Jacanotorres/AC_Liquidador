@@ -265,10 +265,30 @@
   @media (min-width: 560px) { .campos { grid-template-columns: 1fr 1fr; } }
   @media (min-width: 860px) { .campos { grid-template-columns: 1fr 1fr 1fr; } }
   input.dudoso { box-shadow: var(--inset-s), 0 0 0 2px #f0a91c; }
-  .gen { display: grid; gap: 18px; align-items: center; margin-bottom: 4px; }
-  @media (min-width: 640px) { .gen { grid-template-columns: 1fr auto; gap: 28px; } }
-  .gen .consejos { justify-content: flex-start; margin: 10px 0 8px; }
-  .gen button { min-width: 240px; min-height: 54px; font-size: 15.5px; }
+  .docs { display: grid; gap: 22px; margin-bottom: 30px; }
+  .doc { display: grid; gap: 16px; align-items: center; padding: 20px 22px; border-radius: 18px; background: var(--bg); box-shadow: var(--elev-s); }
+  @media (min-width: 760px) { .doc { grid-template-columns: 1fr auto; gap: 28px; } }
+  .doc h3 { margin: 0 0 4px; font-size: 16px; font-weight: 700; letter-spacing: -.005em; display: flex; align-items: center; gap: 10px; }
+  .doc h3::before { content: ""; width: 3px; height: 15px; background: var(--azul); border-radius: 2px; flex: none; }
+  .doc p { margin: 0; font-size: 13px; color: var(--muted); max-width: 56ch; }
+  .doc .acciones { display: flex; gap: 12px; flex-wrap: wrap; }
+  .doc .acciones button { min-height: 44px; padding: 8px 18px; font-size: 14px; }
+  .subtitulo { margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  dialog.vista { border: 0; padding: 0; border-radius: 20px; background: var(--bg); color: var(--ink); box-shadow: var(--elev); width: min(1000px, 96vw); max-height: 92vh; overflow: hidden; }
+  dialog.vista[open] { display: flex; flex-direction: column; }
+  dialog.vista::backdrop { background: rgba(6, 12, 30, .78); }
+  .vista-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--so); box-shadow: 0 1px 0 var(--sc); }
+  .vista-cab h3 { margin: 0; font-size: 15px; font-weight: 700; }
+  .vista-cuerpo { overflow: auto; padding: 22px 20px; display: flex; flex-direction: column; gap: 22px; flex: 1 1 auto; min-height: 220px; }
+  .vista-cuerpo canvas { width: 100%; height: auto; display: block; background: #fff; border-radius: 4px; box-shadow: var(--elev-xs); }
+  .vista-pie { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--so); box-shadow: 0 -1px 0 var(--sc); }
+  .vista-pie .hint { margin: 0 auto 0 0; }
+  @media (max-width: 559px) {
+    dialog.vista { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100vh; margin: 0; border-radius: 0; }
+    .vista-cuerpo { padding: 16px 12px; }
+    .vista-cuerpo canvas { width: 760px; max-width: none; }   /* a lo ancho, con desplazamiento, para poder leerla */
+    .vista-pie button { flex: 1 1 130px; }
+  }
   .progreso { margin: 20px 0 22px; }
   .progreso .barra-p { height: 10px; border-radius: 6px; background: var(--bg); box-shadow: var(--inset-xs); overflow: hidden; }
   .progreso .barra-p i { display: block; height: 100%; width: 0; background: var(--azul); border-radius: 6px; transition: width .3s; }
@@ -549,20 +569,13 @@
   <!-- ============ PASO 3: FORMATOS ============ -->
   <section id="paso-3" class="panel no-print" hidden aria-labelledby="h-paso3">
     <h2 class="titulo-paso" id="h-paso3" tabindex="-1">Formatos de compra</h2>
-    <p class="intro">Revisa los datos y pulsa “Generar documentos”: se descarga un Excel con todos los formatos de compra ya llenos. Lo leído de la tarjeta ya está escrito; completa el resto. Los campos con borde ámbar vienen del OCR: verifícalos con la tarjeta antes de imprimir.</p>
+    <p class="intro">Elige un documento, mira cómo queda en la vista previa y descárgalo en Excel o en PDF. Se llenan solos con los datos que están más abajo. Los campos con borde ámbar vienen del OCR: verifícalos con la tarjeta antes de imprimir.</p>
+    <h3 class="subtitulo">1 · Elige el documento</h3>
+    <div class="docs" id="docs"></div>
+    <div class="msg aviso" id="formato-aviso" hidden></div>
+    <div class="msg ok" id="formato-ok" hidden></div>
+    <h3 class="subtitulo" style="margin-top:26px">2 · Revisa y completa los datos</h3>
     <div class="card" id="c-formatos">
-      <div class="gen">
-        <div>
-          <span class="label">7 formatos en un solo archivo de Excel</span>
-          <div class="consejos">
-            <span class="chip">FunVed-Comp</span><span class="chip">COMPRA VENTA</span><span class="chip">Mandato vendedor</span><span class="chip">Mandato jurídico</span><span class="chip">Doble dueño</span><span class="chip">Consignación V</span><span class="chip">Consignación VYC</span>
-          </div>
-          <div class="hint">Ya vienen integrados: no hace falta subir ningún archivo.</div>
-        </div>
-        <button class="primary" type="button" id="descargar">Generar documentos</button>
-      </div>
-      <div class="msg aviso" id="formato-aviso" hidden></div>
-      <div class="msg ok" id="formato-ok" hidden></div>
       <div class="progreso" id="progreso">
         <div class="barra-p"><i id="progreso-barra"></i></div>
         <div class="txt" id="progreso-txt"></div>
@@ -575,6 +588,19 @@
   </section>
 </div>
 
+<dialog class="vista" id="vista" aria-labelledby="vista-titulo">
+  <div class="vista-cab">
+    <h3 id="vista-titulo"></h3>
+    <button type="button" class="suave" id="vista-cerrar">Cerrar ✕</button>
+  </div>
+  <div class="vista-cuerpo" id="vista-cuerpo"></div>
+  <div class="vista-pie">
+    <span class="hint" id="vista-nota"></span>
+    <button type="button" id="vista-xlsx">Descargar Excel</button>
+    <button type="button" class="primary" id="vista-pdf">Descargar PDF</button>
+  </div>
+</dialog>
+
 <div class="barra-total no-print" id="barra-total" hidden>
   <div><small>Valor final</small><strong id="bt-valor"></strong></div>
   <button type="button" class="primary" id="bt-ver">Ver detalle</button>
@@ -582,6 +608,8 @@
 
 <script src="tarjeta.js"></script>
 <script src="formatos.js"></script>
+<script src="hoja.js"></script>
+<script src="dibujo.js"></script>
 <script>
 /* Configuración: pegar la URL del proyecto y la llave pública (anon o publishable) de Supabase.
    La llave pública es segura aquí: las tablas son de solo lectura (ver supabase-base-gravable.sql). */
@@ -1127,26 +1155,130 @@ function cargarJSZip() {
   });
 }
 
-async function generarDocumentos() {
-  const av = $("formato-aviso"), ok = $("formato-ok");
-  av.hidden = true; ok.hidden = true;
-  const btn = $("descargar"); btn.disabled = true; btn.textContent = "Generando…";
+/* ---------- Documentos por separado: vista previa, Excel y PDF ---------- */
+
+const DOCUMENTOS = [
+  { id: "fun", hoja: "FunVed-Comp", nombre: "FUN · Formulario único de traspaso", archivo: "FUN",
+    detalle: "Formulario único nacional de solicitud de trámites del registro automotor, con los datos del vehículo, el propietario y el comprador. 2 páginas." },
+  { id: "compraventa", hoja: "COMPRA VENTA", nombre: "Contrato de compraventa", archivo: "Compraventa",
+    detalle: "Contrato de compraventa del vehículo entre el vendedor y el comprador, con sus cláusulas y espacio para las firmas." },
+  { id: "mandato", hoja: "Contrato de Mandato Vend", nombre: "Contrato de mandato", archivo: "Contrato de mandato",
+    detalle: "Contrato de mandato de persona natural para que el mandatario realice el trámite de traspaso del vehículo." },
+];
+
+let motor = null;          // plantilla, librerías y hojas ya leídas (se prepara la primera vez que se usa)
+let docVista = null;       // documento abierto en la vista previa
+
+async function prepararMotor() {
+  if (motor) return motor;
+  const [plantilla, JSZip, { jsPDF }] = await Promise.all([cargarPlantilla(), cargarJSZip(), cargarJsPDF()]);
+  const libro = await Hoja.leerLibro(JSZip, plantilla);
+  const base = await Hoja.leerHoja(libro, Formatos.HOJA);
+  const imagenes = {};
+  for (const ruta of Object.keys(libro.zip.files).filter((n) => /^xl\/media\/.+\.(png|jpe?g)$/i.test(n))) {
+    imagenes[ruta] = `data:image/${/jpe?g$/i.test(ruta) ? "jpeg" : "png"};base64,` + await libro.zip.file(ruta).async("base64");
+  }
+  // El logo de RUNT viene en un formato (EMF) que los navegadores no dibujan: se usa una copia en PNG.
   try {
-    const valores = {};
-    document.querySelectorAll("[data-campo]").forEach((i) => { valores[i.dataset.campo] = i.value; });
-    const [plantilla, JSZip] = await Promise.all([cargarPlantilla(), cargarJSZip()]);
-    const { bytes } = await Formatos.llenarPlantilla(JSZip, plantilla, Formatos.valoresPorCelda(valores));
-    const placa = (valores.placa || "vehiculo").toUpperCase().replace(/[^A-Z0-9]/g, "");
-    const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-    const a = document.createElement("a"); a.href = url; a.download = `Documentos Compra ${placa}.xlsx`;
-    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
-    const vacios = Formatos.CAMPOS.filter((c) => !c.auto && c.etiqueta && !String(valores[c.id] || "").trim() && !OPCIONALES.has(c.id))
-      .map((c) => (c.grupo === "vehiculo" ? "" : c.grupo === "propietario" ? "propietario: " : "comprador: ") + c.etiqueta.toLowerCase());
-    ok.textContent = `Descargado: Documentos Compra ${placa}.xlsx. Ábrelo en Excel: se recalcula al abrir.` + (vacios.length ? ` Quedaron vacíos: ${vacios.join(", ")}.` : "");
-    ok.hidden = false;
-    descargado = true; actualizarPasos();
-  } catch (e) { av.textContent = e.message; av.hidden = false; }
-  finally { btn.disabled = false; btn.textContent = "Generar documentos"; }
+    const b = await (await fetch("assets/logo-runt.png")).blob();
+    imagenes["xl/media/image6.emf"] = await new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(b); });
+  } catch (e) { /* sin el logo, el resto del documento sale igual */ }
+  motor = { plantilla, JSZip, jsPDF, libro, base, imagenes, medir: Dibujo.crearMedidor(jsPDF), hojas: {} };
+  return motor;
+}
+
+function valoresActuales() {
+  const v = {};
+  document.querySelectorAll("[data-campo]").forEach((i) => { v[i.dataset.campo] = i.value; });
+  return v;
+}
+
+async function paginasDe(doc) {
+  const m = await prepararMotor();
+  const celdas = Formatos.valoresPorCelda(valoresActuales());
+  if (!m.hojas[doc.id]) m.hojas[doc.id] = await Hoja.leerHoja(m.libro, doc.hoja);
+  const r = Hoja.armarPaginas(m.hojas[doc.id], m.libro.est, { datos: celdas, base: m.base, hoy: new Date(), medir: m.medir, imagenes: m.imagenes });
+  return { ...r, celdas };
+}
+
+const placaArchivo = () => (valoresActuales().placa || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+const nombreArchivo = (doc, ext) => `${doc.archivo}${placaArchivo() ? " " + placaArchivo() : ""}.${ext}`;
+
+function descargarBlob(bytes, nombre, tipo) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: tipo }));
+  const a = document.createElement("a"); a.href = url; a.download = nombre;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function avisoDescarga(nombre) {
+  const vacios = Formatos.CAMPOS.filter((c) => !c.auto && c.etiqueta && !String(valoresActuales()[c.id] || "").trim() && !OPCIONALES.has(c.id))
+    .map((c) => (c.grupo === "vehiculo" ? "" : c.grupo === "propietario" ? "propietario: " : "comprador: ") + c.etiqueta.toLowerCase());
+  const ok = $("formato-ok"); $("formato-aviso").hidden = true;
+  ok.textContent = `Descargado: ${nombre}.` + (vacios.length ? ` Quedaron en blanco: ${vacios.join(", ")}.` : "");
+  ok.hidden = false;
+  descargado = true; actualizarPasos();
+}
+
+async function conCarga(boton, texto, tarea) {
+  const antes = boton.textContent; boton.disabled = true; boton.textContent = texto;
+  try { await tarea(); }
+  catch (e) { const av = $("formato-aviso"); av.textContent = e.message; av.hidden = false; $("formato-ok").hidden = true; }
+  finally { boton.disabled = false; boton.textContent = antes; }
+}
+
+async function descargarPDFDoc(doc) {
+  const r = await paginasDe(doc), m = motor;
+  const nombre = nombreArchivo(doc, "pdf");
+  Dibujo.aPDF(m.jsPDF, r.paginas).save(nombre);
+  avisoDescarga(nombre);
+}
+
+async function descargarExcelDoc(doc) {
+  const m = await prepararMotor();
+  const llenos = await Formatos.llenarPlantilla(m.JSZip, m.plantilla, Formatos.valoresPorCelda(valoresActuales()));
+  const bytes = await Formatos.soloHoja(m.JSZip, llenos.bytes, doc.hoja);
+  const nombre = nombreArchivo(doc, "xlsx");
+  descargarBlob(bytes, nombre, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  avisoDescarga(nombre);
+}
+
+async function abrirVista(doc) {
+  docVista = doc;
+  const dlg = $("vista"), cuerpo = $("vista-cuerpo");
+  $("vista-titulo").textContent = doc.nombre; $("vista-nota").textContent = "";
+  cuerpo.innerHTML = '<p class="empty">Preparando la vista previa…</p>';
+  if (!dlg.open) dlg.showModal();
+  try {
+    const r = await paginasDe(doc);
+    const imgs = await Dibujo.cargarImagenes(r.paginas);
+    cuerpo.innerHTML = "";
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    r.paginas.forEach((pg, i) => {
+      const c = document.createElement("canvas");
+      c.setAttribute("role", "img"); c.setAttribute("aria-label", `${doc.nombre}, página ${i + 1} de ${r.paginas.length}`);
+      cuerpo.append(c);
+      Dibujo.aCanvas(c, pg, imgs, Math.min(3, (cuerpo.clientWidth - 40) * dpr / pg.ancho));
+    });
+    $("vista-nota").textContent = `${r.paginas.length} ${r.paginas.length === 1 ? "página" : "páginas"} · así se verá al descargarlo`;
+  } catch (e) { cuerpo.innerHTML = ""; const p = document.createElement("p"); p.className = "hint err"; p.textContent = e.message; cuerpo.append(p); }
+}
+
+function construirDocumentos() {
+  const cont = $("docs"); cont.innerHTML = "";
+  for (const doc of DOCUMENTOS) {
+    const art = document.createElement("article"); art.className = "doc";
+    const info = document.createElement("div");
+    const h = document.createElement("h3"); h.textContent = doc.nombre;
+    const p = document.createElement("p"); p.textContent = doc.detalle;
+    info.append(h, p);
+    const acc = document.createElement("div"); acc.className = "acciones";
+    const boton = (texto, clase, fn, carga) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = texto; if (clase) b.className = clase;
+      b.addEventListener("click", () => conCarga(b, carga, () => fn(doc))); return b;
+    };
+    acc.append(boton("Vista previa", "", abrirVista, "Abriendo…"), boton("Excel", "", descargarExcelDoc, "Generando…"), boton("PDF", "primary", descargarPDFDoc, "Generando…"));
+    art.append(info, acc); cont.append(art);
+  }
 }
 
 /* ---------- Mes del impuesto ---------- */
@@ -1431,6 +1563,7 @@ $("dealer").textContent = CONFIG.concesionario;
 llenar($("tabla"), TIPOS.map((t) => [t.tabla, t.nombre]), "Elige el tipo");
 $("tabla").remove(0); $("tabla").disabled = false;
 
+construirDocumentos();
 construirCamposFormato();   // antes de enlazar eventos que usan sus campos (p. ej. la placa)
 cargarEmpresa();
 
@@ -1487,7 +1620,10 @@ zona.addEventListener("drop", (e) => {
 });
 
 // Formatos
-$("descargar").addEventListener("click", generarDocumentos);
+$("vista-cerrar").addEventListener("click", () => $("vista").close());
+$("vista").addEventListener("click", (e) => { if (e.target === $("vista")) $("vista").close(); });   // clic fuera = cerrar
+$("vista-pdf").addEventListener("click", (e) => conCarga(e.currentTarget, "Generando…", () => descargarPDFDoc(docVista)));
+$("vista-xlsx").addEventListener("click", (e) => conCarga(e.currentTarget, "Generando…", () => descargarExcelDoc(docVista)));
 
 llenarMeses();
 cargarTramites();

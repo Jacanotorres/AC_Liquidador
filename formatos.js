@@ -102,9 +102,9 @@
     if (!re.test(xml)) return null;
     return xml.replace(re, (_, attrs) => {
       const a = attrs.replace(/\s+t="[^"]*"/, "").replace(/\/$/, "");
-      return valor === ""
-        ? `<c r="${ref}"${a}/>`
-        : `<c r="${ref}"${a} t="inlineStr"><is><t xml:space="preserve">${esc(valor)}</t></is></c>`;
+      // Un campo vacío se escribe como texto vacío (no como celda vacía): así las fórmulas que lo leen muestran
+      // un espacio en blanco y no un "0".
+      return `<c r="${ref}"${a} t="inlineStr"><is><t xml:space="preserve">${esc(valor)}</t></is></c>`;
     });
   }
 
@@ -183,7 +183,83 @@
     return { bytes: salida, faltantes, refrescadas };
   }
 
-  const api = { CAMPOS, valoresDesdeTarjeta, valoresPorCelda, llenarPlantilla };
+
+  /* Deja un Excel con un solo documento: la hoja elegida (visible) y "Datos Basicos" (oculta, para que las
+     fórmulas sigan vivas). Quita las demás hojas con sus imágenes y el índice de cálculo. */
+  async function soloHoja(JSZip, bytes, nombreHoja) {
+    const zip = await JSZip.loadAsync(bytes);
+    const leer = async (n) => (zip.file(n) ? zip.file(n).async("string") : null);
+    let wb = await leer("xl/workbook.xml"), rels = await leer("xl/_rels/workbook.xml.rels"), ct = await leer("[Content_Types].xml");
+    if (!wb || !rels || !ct) throw new Error("El archivo no es un Excel (.xlsx) válido.");
+    const attrDe = (tag, n) => { const m = new RegExp(`\\b${n}="([^"]*)"`).exec(tag); return m ? m[1] : null; };
+    const hojas = [...wb.matchAll(/<sheet\b[^>]*\/>/g)].map((m) => {
+      const rid = attrDe(m[0], "r:id");
+      const destino = attrDe((new RegExp(`<Relationship\\b[^>]*\\bId="${rid}"[^>]*/>`).exec(rels) || [""])[0], "Target");
+      return { tag: m[0], nombre: attrDe(m[0], "name"), rid, ruta: destino ? "xl/" + destino.replace(/^\/?(xl\/)?/, "") : null };
+    });
+    const elegida = hojas.find((h) => h.nombre === nombreHoja), datos = hojas.find((h) => h.nombre === HOJA);
+    if (!elegida || !datos) throw new Error(`La plantilla no tiene la hoja "${elegida ? HOJA : nombreHoja}".`);
+    const quitar = hojas.filter((h) => h !== elegida && h !== datos);
+
+    // libro: sin las otras hojas, con la de datos oculta y la elegida activa; sin rangos con nombre (eran de otras hojas)
+    for (const h of quitar) wb = wb.replace(h.tag, "");
+    wb = wb.replace(datos.tag, /\bstate=/.test(datos.tag) ? datos.tag.replace(/\bstate="[^"]*"/, 'state="hidden"') : datos.tag.replace(/\/>$/, ' state="hidden"/>'));
+    wb = wb.replace(/<definedNames>[\s\S]*?<\/definedNames>/, "");
+    const quedan = [...wb.matchAll(/<sheet\b[^>]*\/>/g)].map((m) => attrDe(m[0], "name"));
+    const activa = quedan.indexOf(nombreHoja);
+    wb = /\bactiveTab="/.test(wb) ? wb.replace(/\bactiveTab="\d+"/, `activeTab="${activa}"`) : wb.replace(/<workbookView\b/, `<workbookView activeTab="${activa}"`);
+    wb = wb.replace(/\bfirstSheet="\d+"/, `firstSheet="${activa}"`);
+    zip.file("xl/workbook.xml", wb);
+
+    // relaciones y tipos de contenido
+    const quitarPartes = new Set(["xl/calcChain.xml"]);
+    for (const h of quitar) { rels = rels.replace(new RegExp(`<Relationship\\b[^>]*\\bId="${h.rid}"[^>]*/>`), ""); quitarPartes.add(h.ruta); }
+    rels = rels.replace(/<Relationship\b[^>]*calcChain[^>]*\/>/, "");
+    zip.file("xl/_rels/workbook.xml.rels", rels);
+
+    // dibujos e imágenes: solo los de las hojas que quedan
+    const dependencias = async (ruta) => {
+      const relRuta = ruta.replace(/(worksheets|drawings)\//, "$1/_rels/") + ".rels";
+      const x = await leer(relRuta); if (!x) return { rels: [], destinos: [] };
+      return { rels: [relRuta], destinos: [...x.matchAll(/Target="([^"]+)"/g)].map((m) => m[1]) };
+    };
+    const conservar = new Set();
+    for (const h of [elegida, datos]) {
+      const d = await dependencias(h.ruta); d.rels.forEach((r) => conservar.add(r));
+      for (const t of d.destinos.filter((t) => /drawings\//.test(t))) {
+        const dr = "xl/drawings/" + t.replace(/^\.\.\/drawings\//, ""); conservar.add(dr);
+        const dd = await dependencias(dr); dd.rels.forEach((r) => conservar.add(r));
+        dd.destinos.forEach((m) => conservar.add("xl/media/" + m.replace(/^\.\.\/media\//, "")));
+      }
+    }
+    for (const n of Object.keys(zip.files)) {
+      if (zip.files[n].dir) continue;
+      const esHojaQuitada = quitarPartes.has(n) || [...quitarPartes].some((q) => q && n === q.replace(/(worksheets)\//, "$1/_rels/") + ".rels");
+      const esAdjunto = /^xl\/(drawings|media)\//.test(n) || /^xl\/worksheets\/_rels\//.test(n) || /^xl\/drawings\/_rels\//.test(n);
+      if (esHojaQuitada || (esAdjunto && !conservar.has(n))) { zip.remove(n); ct = ct.replace(new RegExp(`<Override\\b[^>]*PartName="/${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*/>`), ""); }
+    }
+    zip.file("[Content_Types].xml", ct);
+
+    // la hoja elegida queda seleccionada; ninguna otra
+    for (const h of [elegida, datos]) {
+      let x = await leer(h.ruta);
+      x = x.replace(/\s+tabSelected="1"/g, "");
+      if (h === elegida) x = x.replace(/<sheetView\b/, '<sheetView tabSelected="1"');
+      zip.file(h.ruta, x);
+    }
+
+    // propiedades: lista de hojas
+    const app = await leer("docProps/app.xml");
+    if (app) {
+      const nombres = quedan.map((n) => `<vt:lpstr>${n}</vt:lpstr>`).join("");
+      zip.file("docProps/app.xml", app
+        .replace(/<HeadingPairs>[\s\S]*?<\/HeadingPairs>/, `<HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Hojas de cálculo</vt:lpstr></vt:variant><vt:variant><vt:i4>${quedan.length}</vt:i4></vt:variant></vt:vector></HeadingPairs>`)
+        .replace(/<TitlesOfParts>[\s\S]*?<\/TitlesOfParts>/, `<TitlesOfParts><vt:vector size="${quedan.length}" baseType="lpstr">${nombres}</vt:vector></TitlesOfParts>`));
+    }
+    return zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+  }
+
+  const api = { CAMPOS, HOJA, valoresDesdeTarjeta, valoresPorCelda, llenarPlantilla, soloHoja };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else raiz.Formatos = api;
 })(typeof window !== "undefined" ? window : globalThis);
